@@ -48,6 +48,14 @@ export default function Home() {
                 href="https://badgelist.com/u/lourdesakirtha"
               >
                 BadgeList
+                            </a>
+            </li>
+            <li>
+              <a
+                className="underline underline-offset-4 hover:text-black dark:hover:text-white"
+                href="https://www.linkedin.com/in/lourdes-raj/"
+              >
+                LinkedIn
               </a>
             </li>
           </ul>
