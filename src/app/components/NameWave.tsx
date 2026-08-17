@@ -1,17 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
-const WIDTH = 360;
-const HEIGHT = 64;
-const BASE = 52;
+const WIDTH = 300;
+const HEIGHT = 36;
+const BASE = 28;
 const WAVE_COUNT = 3;
 const UNIT_WIDTH = WIDTH / WAVE_COUNT;
-const RISE = 30;
-const MAX_RADIUS = 13;
+const RISE = 15;
+const MAX_RADIUS = 7;
 const SWEEP = (480 * Math.PI) / 180;
 const THETA0 = (-130 * Math.PI) / 180;
-const SPIRAL_STEPS = 18;
+const SPIRAL_STEPS = 16;
 const PHASE_SPEED = 0.035;
 const STAGGER = 1.8;
 const EASE = 0.06;
@@ -67,12 +67,20 @@ function buildWavePath(intensity: number, phase: number) {
 
 export default function NameWave({ name }: { name: string }) {
   const [hovered, setHovered] = useState(false);
+  const [lineWidth, setLineWidth] = useState<number | null>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
   const intensityRef = useRef(0);
   const phaseRef = useRef(0);
   const frameRef = useRef<number | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (headingRef.current) {
+      setLineWidth(headingRef.current.offsetWidth);
+    }
+  }, []);
+
+  useLayoutEffect(() => {
     const targetIntensity = hovered ? 1 : 0;
 
     function tick() {
@@ -104,26 +112,33 @@ export default function NameWave({ name }: { name: string }) {
   }, [hovered]);
 
   return (
-    <div
-      className="inline-flex w-fit flex-col"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      <h1 className="text-4xl font-semibold tracking-tight text-black dark:text-zinc-50">
+    <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+      <h1
+        ref={headingRef}
+        className="inline-block text-4xl font-semibold tracking-tight text-black dark:text-zinc-50"
+      >
         {name}
       </h1>
-      <svg width="100%" height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`}>
-        <path
-          ref={pathRef}
-          d={FLAT_PATH}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="text-zinc-400 dark:text-zinc-600"
-        />
-      </svg>
+      {lineWidth != null && (
+        <svg
+          width={lineWidth}
+          height={HEIGHT}
+          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+          preserveAspectRatio="none"
+          className="block"
+        >
+          <path
+            ref={pathRef}
+            d={FLAT_PATH}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-zinc-400 dark:text-zinc-600"
+          />
+        </svg>
+      )}
     </div>
   );
 }
