@@ -2,50 +2,94 @@
 
 import { useEffect, useRef, useState } from "react";
 
-const WIDTH = 600;
-const HEIGHT = 20;
-const SEGMENTS = 60;
-const FREQUENCY = 2.5;
-const MAX_AMPLITUDE = 6;
-const SPEED = 0.09;
-const EASE = 0.08;
+const WIDTH = 360;
+const HEIGHT = 64;
+const BASE = 52;
+const WAVE_COUNT = 3;
+const UNIT_WIDTH = WIDTH / WAVE_COUNT;
+const RISE = 30;
+const MAX_RADIUS = 13;
+const SWEEP = (480 * Math.PI) / 180;
+const THETA0 = (-130 * Math.PI) / 180;
+const SPIRAL_STEPS = 18;
+const PHASE_SPEED = 0.035;
+const STAGGER = 1.8;
+const EASE = 0.06;
 
-const FLAT_PATH = `M0,${HEIGHT / 2} L${WIDTH},${HEIGHT / 2}`;
+const FLAT_PATH = `M0,${BASE} L${WIDTH},${BASE}`;
+
+function buildWavePath(intensity: number, phase: number) {
+  if (intensity < 0.01) return FLAT_PATH;
+
+  const rise = RISE * intensity;
+  const maxRadius = MAX_RADIUS * intensity;
+  let d = `M0,${BASE}`;
+
+  for (let i = 0; i < WAVE_COUNT; i++) {
+    const x0 = i * UNIT_WIDTH;
+    const w = UNIT_WIDTH;
+    const wavePhase = phase + i * STAGGER;
+
+    const crestStart = { x: x0 + w * 0.4, y: BASE - rise };
+    const c1 = { x: x0 + w * 0.12, y: BASE };
+    const c2 = { x: x0 + w * 0.22, y: BASE - rise * 0.85 };
+    d += ` C${c1.x.toFixed(2)},${c1.y.toFixed(2)} ${c2.x.toFixed(2)},${c2.y.toFixed(2)} ${crestStart.x.toFixed(2)},${crestStart.y.toFixed(2)}`;
+
+    const center = {
+      x: crestStart.x - maxRadius * Math.cos(THETA0),
+      y: crestStart.y - maxRadius * Math.sin(THETA0),
+    };
+
+    let last = crestStart;
+    for (let s = 1; s <= SPIRAL_STEPS; s++) {
+      const t = s / SPIRAL_STEPS;
+      // extra rotation and radius wobble are scaled by t so the spiral
+      // always starts exactly at crestStart, keeping the path continuous
+      const theta = THETA0 + SWEEP * t + wavePhase * 0.4 * t;
+      const radius =
+        maxRadius * (1 - t * 0.82) +
+        maxRadius * 0.18 * Math.sin(wavePhase * 2 + t * 9) * t;
+      last = {
+        x: center.x + radius * Math.cos(theta),
+        y: center.y + radius * Math.sin(theta),
+      };
+      d += ` L${last.x.toFixed(2)},${last.y.toFixed(2)}`;
+    }
+
+    const c3 = { x: last.x + w * 0.06, y: last.y + (BASE - last.y) * 0.35 };
+    const c4 = { x: x0 + w * 0.82, y: BASE - 1 };
+    const exit = { x: x0 + w, y: BASE };
+    d += ` C${c3.x.toFixed(2)},${c3.y.toFixed(2)} ${c4.x.toFixed(2)},${c4.y.toFixed(2)} ${exit.x.toFixed(2)},${exit.y.toFixed(2)}`;
+  }
+
+  return d;
+}
 
 export default function NameWave({ name }: { name: string }) {
   const [hovered, setHovered] = useState(false);
   const pathRef = useRef<SVGPathElement>(null);
-  const amplitudeRef = useRef(0);
+  const intensityRef = useRef(0);
   const phaseRef = useRef(0);
   const frameRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const targetAmplitude = hovered ? MAX_AMPLITUDE : 0;
+    const targetIntensity = hovered ? 1 : 0;
 
     function tick() {
-      amplitudeRef.current += (targetAmplitude - amplitudeRef.current) * EASE;
-      phaseRef.current += SPEED;
+      intensityRef.current += (targetIntensity - intensityRef.current) * EASE;
+      phaseRef.current += PHASE_SPEED;
 
-      const amplitude = amplitudeRef.current;
-      const settled = !hovered && Math.abs(amplitude) < 0.05;
+      const intensity = intensityRef.current;
+      const settled = !hovered && intensity < 0.01;
 
       if (settled) {
         pathRef.current?.setAttribute("d", FLAT_PATH);
-        amplitudeRef.current = 0;
+        intensityRef.current = 0;
         frameRef.current = null;
         return;
       }
 
-      const points: string[] = [];
-      for (let i = 0; i <= SEGMENTS; i++) {
-        const x = (WIDTH / SEGMENTS) * i;
-        const y =
-          HEIGHT / 2 +
-          amplitude *
-            Math.sin((i / SEGMENTS) * FREQUENCY * Math.PI * 2 + phaseRef.current);
-        points.push(`${x.toFixed(2)},${y.toFixed(2)}`);
-      }
-      pathRef.current?.setAttribute("d", `M${points.join(" L")}`);
+      pathRef.current?.setAttribute("d", buildWavePath(intensity, phaseRef.current));
       frameRef.current = requestAnimationFrame(tick);
     }
 
@@ -61,19 +105,14 @@ export default function NameWave({ name }: { name: string }) {
 
   return (
     <div
-      className="inline-flex w-fit flex-col gap-1"
+      className="inline-flex w-fit flex-col"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       <h1 className="text-4xl font-semibold tracking-tight text-black dark:text-zinc-50">
         {name}
       </h1>
-      <svg
-        width="100%"
-        height={HEIGHT}
-        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        preserveAspectRatio="none"
-      >
+      <svg width="100%" height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`}>
         <path
           ref={pathRef}
           d={FLAT_PATH}
@@ -81,6 +120,7 @@ export default function NameWave({ name }: { name: string }) {
           stroke="currentColor"
           strokeWidth={2}
           strokeLinecap="round"
+          strokeLinejoin="round"
           className="text-zinc-400 dark:text-zinc-600"
         />
       </svg>
