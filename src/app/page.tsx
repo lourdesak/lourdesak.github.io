@@ -4,22 +4,24 @@ export default function Home() {
   return (
     <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
       <main className="flex w-full max-w-2xl flex-col gap-8 px-6 py-24">
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-4">
           <NameWave name="Lourdes Akirtha" />
           <p className="text-lg text-zinc-600 dark:text-zinc-400">
-            A short tagline about who you are and what you do goes here.
+            22-year-old physics PhD student at the University of Hawaiʻi at
+            Mānoa. My roots trace back to the Indian states of Tamil Nadu and
+            Karnataka, with recent years spent in Pennsylvania and Hawaiʻi.
+            Reading is my shining hobby and passion, and I&apos;ve contributed
+            primarily as a researcher across multiple projects, taking on
+            roles such as data analyst, mentor, technician, and
+            administrator.
+          </p>
+          <p className="text-lg text-zinc-600 dark:text-zinc-400">
+            My focus has remained consistent in giving back to non-profits
+            &mdash; I&apos;ve taught math and science for the past four years
+            at Moder Patshala, and I&apos;m now beginning a new role as a
+            scholar at the East-West Center.
           </p>
         </div>
-
-        <section className="flex flex-col gap-2">
-          <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-            About
-          </h2>
-          <p className="text-zinc-700 dark:text-zinc-300">
-            Write a couple of sentences about your background, interests, and
-            what you&apos;re currently working on.
-          </p>
-        </section>
 
         <section className="flex flex-col gap-2">
           <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
