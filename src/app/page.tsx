@@ -1,11 +1,11 @@
+import NameWave from "./components/NameWave";
+
 export default function Home() {
   return (
     <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
       <main className="flex w-full max-w-2xl flex-col gap-8 px-6 py-24">
         <div className="flex flex-col gap-2">
-          <h1 className="text-4xl font-semibold tracking-tight text-black dark:text-zinc-50">
-            Lourdes Akirtha
-          </h1>
+          <NameWave name="Lourdes Akirtha" />
           <p className="text-lg text-zinc-600 dark:text-zinc-400">
             A short tagline about who you are and what you do goes here.
           </p>
