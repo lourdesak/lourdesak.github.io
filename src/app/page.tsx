@@ -37,9 +37,17 @@ export default function Home() {
             <li>
               <a
                 className="underline underline-offset-4 hover:text-black dark:hover:text-white"
-                href="mailto:lourdesakirtha1@gmail.com"
+                href="mailto:lourdes2@hawaii.edu"
               >
                 Email
+              </a>
+            </li>
+            <li>
+              <a
+                className="underline underline-offset-4 hover:text-black dark:hover:text-white"
+                href="https://badgelist.com/u/lourdesakirtha"
+              >
+                BadgeList
               </a>
             </li>
           </ul>
