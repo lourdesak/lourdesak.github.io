@@ -16,7 +16,7 @@ export default function ImageCarousel({ images }: { images: CarouselImage[] }) {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setTick((t) => t + 1);
+      setTick((t) => t - 1);
       setTransitioning(true);
       const timeout = setTimeout(() => setTransitioning(false), TRANSITION_MS);
       return () => clearTimeout(timeout);
@@ -24,8 +24,9 @@ export default function ImageCarousel({ images }: { images: CarouselImage[] }) {
     return () => clearInterval(interval);
   }, []);
 
-  const current = tick % images.length;
-  const prev = (tick - 1 + images.length) % images.length;
+  const mod = (n: number) => ((n % images.length) + images.length) % images.length;
+  const current = mod(tick);
+  const prev = mod(tick + 1);
 
   return (
     <div className="absolute inset-0 overflow-hidden">

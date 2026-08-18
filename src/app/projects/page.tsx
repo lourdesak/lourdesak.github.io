@@ -25,7 +25,7 @@ const PROJECTS = [
   },
   {
     label: "Data Science",
-    description: "A short description of this project goes here.",
+    description: "Collected Enron data to study general purpose AI lineage.",
   },
 ];
 
@@ -36,7 +36,7 @@ export default function ProjectsPage() {
         <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
           Research Projects
         </h2>
-        <SquareGrid items={PROJECTS} cardWidth={404} cardHeight={202} columns={1} />
+        <SquareGrid items={PROJECTS} cardWidth={300} cardHeight={150} columns={2} />
       </div>
 
       <div className="mt-8 flex flex-col gap-4">
