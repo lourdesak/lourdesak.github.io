@@ -2,10 +2,22 @@ import PageShell from "../components/PageShell";
 import SquareGrid from "../components/SquareGrid";
 
 const PROJECTS = [
-  "Neutrino Physics",
-  "Astroparticle Physics",
-  "Physics Education Research",
-  "Data Science",
+  {
+    label: "Neutrino Physics",
+    description: "A short description of this project goes here.",
+  },
+  {
+    label: "Astroparticle Physics",
+    description: "A short description of this project goes here.",
+  },
+  {
+    label: "Physics Education Research",
+    description: "A short description of this project goes here.",
+  },
+  {
+    label: "Data Science",
+    description: "A short description of this project goes here.",
+  },
 ];
 
 export default function ProjectsPage() {
