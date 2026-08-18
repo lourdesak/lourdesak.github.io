@@ -29,6 +29,12 @@ export default function ProjectsPage() {
         </h2>
         <SquareGrid items={PROJECTS} cardWidth={404} cardHeight={202} columns={1} />
       </div>
+
+      <div className="mt-8 flex flex-col gap-4">
+        <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+          Featured Projects
+        </h2>
+      </div>
     </PageShell>
   );
 }
