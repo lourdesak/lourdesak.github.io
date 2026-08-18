@@ -1,6 +1,7 @@
 type SquareItem = {
   label: string;
   description?: string;
+  content?: React.ReactNode;
 };
 
 type SquareGridProps = {
@@ -31,9 +32,11 @@ export default function SquareGrid({
             {item.label}
           </p>
           <div
-            className="rounded-2xl border border-zinc-200 bg-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-105 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
+            className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-105 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
             style={{ width: cardWidth, height: cardHeight }}
-          />
+          >
+            {item.content}
+          </div>
           {item.description && (
             <p className="line-clamp-2 h-10 text-sm leading-snug text-white transition-colors duration-300 group-hover:text-blue-400">
               {item.description}

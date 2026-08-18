@@ -8,18 +8,11 @@ export default function Home() {
           <NameWave name="Lourdes Akirtha" />
           <p className="text-lg text-zinc-600 dark:text-zinc-400">
             22-year-old physics PhD student at the University of Hawaiʻi at
-            Mānoa. My roots trace back to the Indian states of Tamil Nadu and
-            Karnataka, with recent years spent in Pennsylvania and Hawaiʻi.
+            Mānoa. My roots trace back to a coastal city in India called "Tuticorin"
+            with recent years spent in Philadelphia and Honolulu.
             Reading is my shining hobby and passion, and I&apos;ve contributed
-            primarily as a researcher across multiple projects, taking on
-            roles such as data analyst, mentor, technician, and
-            administrator.
-          </p>
-          <p className="text-lg text-zinc-600 dark:text-zinc-400">
-            My focus has remained consistent in giving back to non-profits
-            &mdash; I&apos;ve taught math and science for the past four years
-            at Moder Patshala, and I&apos;m now beginning a new role as a
-            scholar at the East-West Center.
+            primarily as a researcher and a mentor across multiple projects. May it be coding, 
+            soldering or helping write grants, I try to mold for the situation.
           </p>
         </div>
 
@@ -40,16 +33,8 @@ export default function Home() {
               <a
                 className="underline underline-offset-4 hover:text-black dark:hover:text-white"
                 href="mailto:lourdes2@hawaii.edu"
-              >
+                            >
                 Email
-              </a>
-            </li>
-            <li>
-              <a
-                className="underline underline-offset-4 hover:text-black dark:hover:text-white"
-                href="https://badgelist.com/u/lourdesakirtha"
-              >
-                BadgeList
                             </a>
             </li>
             <li>
@@ -58,6 +43,14 @@ export default function Home() {
                 href="https://www.linkedin.com/in/lourdes-raj/"
               >
                 LinkedIn
+              </a>
+            </li>
+            <li>
+              <a
+                className="underline underline-offset-4 hover:text-black dark:hover:text-white"
+                href="https://badgelist.com/u/lourdesakirtha"
+              >
+                BadgeList
               </a>
             </li>
           </ul>
