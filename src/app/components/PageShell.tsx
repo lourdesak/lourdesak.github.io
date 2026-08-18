@@ -6,8 +6,8 @@ export default function PageShell({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col flex-1 items-center bg-zinc-50 pt-32 font-sans dark:bg-black">
-      <main className="flex w-full max-w-2xl flex-col gap-4 px-6">
+    <div className="flex flex-col flex-1 items-start bg-zinc-50 pt-32 font-sans dark:bg-black">
+      <main className="flex w-full max-w-4xl flex-col gap-4 px-6">
         <h1 className="text-3xl font-semibold tracking-tight text-black dark:text-zinc-50">
           {title}
         </h1>

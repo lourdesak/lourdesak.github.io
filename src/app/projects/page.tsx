@@ -36,7 +36,7 @@ export default function ProjectsPage() {
         <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
           Research Projects
         </h2>
-        <SquareGrid items={PROJECTS} cardWidth={300} cardHeight={150} columns={2} />
+        <SquareGrid items={PROJECTS} cardWidth={412} cardHeight={206} columns={2} />
       </div>
 
       <div className="mt-8 flex flex-col gap-4">
