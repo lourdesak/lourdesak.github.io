@@ -16,15 +16,17 @@ const HOBBIES = [
 
 export default function HobbiesPage() {
   return (
-    <PageShell title="Hobbies">
-      <div className="flex w-[428px] flex-col gap-12">
+    <PageShell
+      title="Hobbies"
+      header={
         <h2
-          className={`${poppins.className} animate-[fade-in_2s_ease-out] text-center text-2xl font-medium text-zinc-800 dark:text-zinc-100`}
+          className={`${poppins.className} animate-[fade-in_2s_ease-out] mb-8 text-center text-2xl font-medium text-zinc-800 dark:text-zinc-100`}
         >
           Crossroads of Travelling & Photography
         </h2>
-        <SquareGrid items={HOBBIES} />
-      </div>
+      }
+    >
+      <SquareGrid items={HOBBIES} />
     </PageShell>
   );
 }
