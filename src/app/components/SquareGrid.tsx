@@ -28,7 +28,7 @@ export default function SquareGrid({
           className="group flex flex-col gap-3"
           style={{ width: cardWidth }}
         >
-          <p className="text-base font-medium text-white-800 dark:text-white-400">
+          <p className="origin-left text-base font-medium text-white-800 transition-transform duration-300 ease-out group-hover:scale-110 dark:text-white-400">
             {item.label}
           </p>
           <div
