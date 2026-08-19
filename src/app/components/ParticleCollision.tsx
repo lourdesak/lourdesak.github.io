@@ -4,20 +4,25 @@ import { useEffect, useRef } from "react";
 
 const SEED_SPEED = 0.22; // px/ms
 const SEED_RADIUS = 28;
-const BURST_MIN = 10;
-const BURST_MAX = 16;
+const BURST_MIN = 24;
+const BURST_MAX = 40;
 const FRAGMENT_SPEED_MIN = 0.02; // px/ms
-const FRAGMENT_SPEED_MAX = 0.09;
-const FRAGMENT_SIZE_MIN = 20;
-const FRAGMENT_SIZE_MAX = 48;
+const FRAGMENT_SPEED_MAX = 0.13;
+const FRAGMENT_SIZE_MIN = 3;
+const FRAGMENT_SIZE_MAX = 22; // must stay below SEED_RADIUS
 const FRAGMENT_LIFE_MIN = 4500; // ms
 const FRAGMENT_LIFE_MAX = 7500;
 const CYCLE_PAUSE_MS = 5000;
 const RING_LIFE_MS = 900;
-const CHORD_COUNT_MIN = 12;
-const CHORD_COUNT_MAX = 20;
-const ARC_COUNT_MIN = 3;
-const ARC_COUNT_MAX = 5;
+const CHORD_COUNT_MIN = 14;
+const CHORD_COUNT_MAX = 26;
+const ARC_COUNT_MIN = 4;
+const ARC_COUNT_MAX = 7;
+const BOUNDARY_DELAY_MS = 2000; // corner lining appears/activates this long after burst
+const BOUNDARY_FADE_MS = 600;
+const BOUNDARY_RADIUS_RATIO = 0.22;
+const BOUNDARY_RADIUS_MIN = 140;
+const BOUNDARY_RADIUS_MAX = 260;
 
 type Vec = { x: number; y: number };
 
@@ -40,12 +45,13 @@ type Fragment = {
   life: number;
   size: number;
   lines: SphereLine[];
+  stopped: boolean;
 };
 
 type Phase =
   | { kind: "waiting"; until: number }
   | { kind: "seeding"; seeds: [Seed, Seed]; target: Vec }
-  | { kind: "bursting"; fragments: Fragment[]; ringAge: number; origin: Vec };
+  | { kind: "bursting"; fragments: Fragment[]; age: number; origin: Vec };
 
 function rand(min: number, max: number) {
   return min + Math.random() * (max - min);
@@ -110,6 +116,35 @@ function drawWireSphere(
   }
 }
 
+function boundaryRadius(width: number, height: number) {
+  const raw = Math.min(width, height) * BOUNDARY_RADIUS_RATIO;
+  return Math.min(BOUNDARY_RADIUS_MAX, Math.max(BOUNDARY_RADIUS_MIN, raw));
+}
+
+function drawCornerLining(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  radius: number,
+  opacity: number,
+) {
+  const corners: { x: number; y: number; start: number; end: number }[] = [
+    { x: 0, y: 0, start: 0, end: Math.PI / 2 },
+    { x: width, y: 0, start: Math.PI / 2, end: Math.PI },
+    { x: width, y: height, start: Math.PI, end: Math.PI * 1.5 },
+    { x: 0, y: height, start: Math.PI * 1.5, end: Math.PI * 2 },
+  ];
+  for (const corner of corners) {
+    for (const inset of [0, 8]) {
+      ctx.strokeStyle = `rgba(255,255,255,${opacity * (inset === 0 ? 0.55 : 0.35)})`;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(corner.x, corner.y, radius - inset, corner.start, corner.end);
+      ctx.stroke();
+    }
+  }
+}
+
 function makeSeeding(width: number, height: number): Phase {
   const y = rand(height * 0.3, height * 0.7);
   const target: Vec = { x: width / 2, y };
@@ -142,9 +177,10 @@ function burstAt(origin: Vec): Phase {
       life: rand(FRAGMENT_LIFE_MIN, FRAGMENT_LIFE_MAX),
       size: rand(FRAGMENT_SIZE_MIN, FRAGMENT_SIZE_MAX),
       lines: generateWireSphereLines(),
+      stopped: false,
     };
   });
-  return { kind: "bursting", fragments, ringAge: 0, origin };
+  return { kind: "bursting", fragments, age: 0, origin };
 }
 
 export default function ParticleCollision() {
@@ -201,8 +237,8 @@ export default function ParticleCollision() {
         }
         if (allArrived) phase = burstAt(phase.target);
       } else if (phase.kind === "bursting") {
-        phase.ringAge += dt;
-        const ringT = Math.min(phase.ringAge / RING_LIFE_MS, 1);
+        phase.age += dt;
+        const ringT = Math.min(phase.age / RING_LIFE_MS, 1);
         if (ringT < 1) {
           ctx!.strokeStyle = `rgba(255,255,255,${0.5 * (1 - ringT)})`;
           ctx!.lineWidth = 1.5;
@@ -211,13 +247,48 @@ export default function ParticleCollision() {
           ctx!.stroke();
         }
 
+        const boundaryActive = phase.age >= BOUNDARY_DELAY_MS;
+        if (boundaryActive) {
+          const fadeT = Math.min((phase.age - BOUNDARY_DELAY_MS) / BOUNDARY_FADE_MS, 1);
+          drawCornerLining(ctx!, width, height, boundaryRadius(width, height), fadeT);
+        }
+
         let alive = false;
         for (const f of phase.fragments) {
           f.age += dt;
           if (f.age >= f.life) continue;
           alive = true;
-          f.pos.x += f.vel.x * dt;
-          f.pos.y += f.vel.y * dt;
+
+          if (!f.stopped) {
+            f.pos.x += f.vel.x * dt;
+            f.pos.y += f.vel.y * dt;
+
+            if (boundaryActive) {
+              const r = boundaryRadius(width, height);
+              const corners: Vec[] = [
+                { x: 0, y: 0 },
+                { x: width, y: 0 },
+                { x: width, y: height },
+                { x: 0, y: height },
+              ];
+              for (const corner of corners) {
+                const dx = f.pos.x - corner.x;
+                const dy = f.pos.y - corner.y;
+                const dist = Math.hypot(dx, dy);
+                if (dist <= r) {
+                  const nx = dist === 0 ? 1 : dx / dist;
+                  const ny = dist === 0 ? 0 : dy / dist;
+                  f.pos.x = corner.x + nx * r;
+                  f.pos.y = corner.y + ny * r;
+                  f.vel.x = 0;
+                  f.vel.y = 0;
+                  f.stopped = true;
+                  break;
+                }
+              }
+            }
+          }
+
           const lifeT = f.age / f.life;
           const opacity = 1 - lifeT;
           drawWireSphere(ctx!, f.pos.x, f.pos.y, f.size, opacity * 0.9, f.lines);
