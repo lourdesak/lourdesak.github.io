@@ -20,8 +20,27 @@ export default function Home() {
             >
               <span className="text-sky-300">Tuticorin</span>
             </HoverPhoto>{" "}
-            with recent years spent in Philadelphia and Honolulu.
-            Reading is my shining hobby and passion, and I&apos;ve contributed
+            with recent years spent in{" "}
+            <HoverPhoto
+              src="/philadelphia.jpg"
+              alt="The Philadelphia skyline seen across a park lawn on a clear spring day"
+              width={800}
+              height={533}
+              panelWidth="w-72"
+            >
+              <span className="text-sky-300">Philadelphia</span>
+            </HoverPhoto>{" "}
+            and{" "}
+            <HoverPhoto
+              src="/honolulu.jpg"
+              alt="Aerial view of Honolulu with Diamond Head rising behind the city"
+              width={750}
+              height={494}
+              panelWidth="w-72"
+            >
+              <span className="text-sky-300">Honolulu</span>
+            </HoverPhoto>
+            . Reading is my shining hobby and passion, and I&apos;ve contributed
             primarily as a researcher and a mentor across multiple projects. May it be coding, 
             soldering or helping write grants, I try to be adaptable.
           </p>
@@ -68,8 +87,10 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="absolute bottom-3 right-4 z-10 text-[10px] leading-tight text-zinc-400 dark:text-zinc-600">
-        Tuticorin photo by visualsbysaud &middot; tntourismoffcl
+      <footer className="absolute bottom-3 right-4 z-10 max-w-[90vw] text-right text-[10px] leading-relaxed text-zinc-400 dark:text-zinc-600">
+        <p>Tuticorin &mdash; visualsbysaud &middot; tntourismoffcl</p>
+        <p>Philadelphia &mdash; Guide to Philly</p>
+        <p>Honolulu &mdash; TripSavvy, part of the People Inc. publishing family</p>
       </footer>
     </div>
   );

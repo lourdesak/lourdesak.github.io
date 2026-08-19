@@ -11,12 +11,16 @@ export default function HoverPhoto({
   alt,
   width,
   height,
+  // Tailwind width for the popup. Portrait shots want a narrower panel than
+  // landscape ones, or they end up taller than the viewport.
+  panelWidth = "w-56",
 }: {
   children: ReactNode;
   src: string;
   alt: string;
   width: number;
   height: number;
+  panelWidth?: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -39,7 +43,7 @@ export default function HoverPhoto({
 
       <span
         aria-hidden={!open}
-        className={`pointer-events-none absolute bottom-full left-1/2 z-30 mb-3 block w-56 origin-bottom transition duration-300 ease-out ${
+        className={`pointer-events-none absolute bottom-full left-1/2 z-30 mb-3 block ${panelWidth} origin-bottom transition duration-300 ease-out ${
           open
             ? "-translate-x-1/2 translate-y-0 rotate-[-2deg] scale-100 opacity-100"
             : "-translate-x-1/2 translate-y-3 rotate-0 scale-95 opacity-0"
