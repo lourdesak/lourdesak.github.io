@@ -12,16 +12,16 @@ const ASTRO_IMAGES = [
 const PROJECTS = [
   {
     label: "Neutrino Physics",
-    description: "Developed a Geant4 simulation of a stopping-muon detector in Dr. Michell Dolinski’s lab. Designed an algorithm to identify and capture stopping muons, then analyzed the resulting data for a specific initial detector configuration.",
+    description: "Developed a Geant4 simulation of a stopping-muon (SM) detector. Designed an algorithm to identify SMs & analyzed data for a specific initial detector configuration.",
   },
   {
     label: "Astroparticle Physics",
-    description: "Launched (in-house built) Cosmic Watches to heights of 80,000 ft in Dr. Christina Love's lab. Soldered, polished scintillatos and eventually presented finding at APS Mid-Atlantic",
+    description: "Launched (in-house built) Cosmic Watches to heights of 80,000 ft in Dr. Christina Love's lab. Soldered, polished scintillatos and eventually presented findings at APS Mid-Atlantic.",
     content: <ImageCarousel images={ASTRO_IMAGES} />,
   },
   {
     label: "Physics Education Research",
-    description: "Scrapped huge amounts of physics faculty data off the web for the Moore foundation",
+    description: "Collected physics faculty data off the web to contribute for a Moore foundation project",
   },
   {
     label: "Data Science",
@@ -36,7 +36,7 @@ export default function ProjectsPage() {
         <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
           Research Projects
         </h2>
-        <SquareGrid items={PROJECTS} cardWidth={412} cardHeight={206} columns={2} />
+        <SquareGrid items={PROJECTS} cardWidth={600} cardHeight={300} columns={2} />
       </div>
 
       <div className="mt-8 flex flex-col gap-4">

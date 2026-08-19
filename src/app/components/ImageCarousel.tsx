@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-const INTERVAL_MS = 3000;
+const INTERVAL_MS = 1500;
 const TRANSITION_MS = 700;
 
 type CarouselImage = {
@@ -32,7 +32,7 @@ export default function ImageCarousel({ images }: { images: CarouselImage[] }) {
 
   return (
     <div
-      className="absolute inset-0 overflow-hidden"
+      className="absolute inset-0 overflow-hidden bg-black"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
@@ -41,7 +41,7 @@ export default function ImageCarousel({ images }: { images: CarouselImage[] }) {
           key={`out-${tick}`}
           src={images[prev].src}
           alt={images[prev].alt}
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-contain"
           style={{ animation: `slide-out-left ${TRANSITION_MS}ms ease-in-out forwards` }}
         />
       )}
@@ -49,7 +49,7 @@ export default function ImageCarousel({ images }: { images: CarouselImage[] }) {
         key={`in-${tick}`}
         src={images[current].src}
         alt={images[current].alt}
-        className="absolute inset-0 h-full w-full object-cover"
+        className="absolute inset-0 h-full w-full object-contain"
         style={
           transitioning
             ? { animation: `slide-in-left ${TRANSITION_MS}ms ease-in-out forwards` }
