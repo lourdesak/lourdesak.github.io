@@ -18,11 +18,17 @@ const CHORD_COUNT_MIN = 14;
 const CHORD_COUNT_MAX = 26;
 const ARC_COUNT_MIN = 4;
 const ARC_COUNT_MAX = 7;
-const BOUNDARY_DELAY_MS = 2000; // corner lining appears/activates this long after burst
+const BOUNDARY_DELAY_MS = 2000; // detectors appear/activate this long after burst
 const BOUNDARY_FADE_MS = 600;
-const BOUNDARY_RADIUS_RATIO = 0.22;
-const BOUNDARY_RADIUS_MIN = 140;
-const BOUNDARY_RADIUS_MAX = 260;
+const DOME_BULGE_RATIO = 0.22; // how far the dome pokes into the page, relative to min(width,height)
+const DOME_BULGE_MIN = 140;
+const DOME_BULGE_MAX = 260;
+const DOME_CURVE_FACTOR = 3; // bigger = larger, gentler sphere (more convex, less tight)
+const DOME_HALF_ANGLE = 0.58; // ~33deg visible slice of the sphere
+const DOME_ROWS = 6;
+const DOME_DOTS_PER_ROW = 13;
+const DOME_DOT_RADIUS = 1.6;
+const QUICK_FADE_MS = 350; // how fast a fragment vanishes once it touches a detector
 
 type Vec = { x: number; y: number };
 
@@ -52,6 +58,8 @@ type Phase =
   | { kind: "waiting"; until: number }
   | { kind: "seeding"; seeds: [Seed, Seed]; target: Vec }
   | { kind: "bursting"; fragments: Fragment[]; age: number; origin: Vec };
+
+type Dome = { center: Vec; outerRadius: number; centerAngle: number };
 
 function rand(min: number, max: number) {
   return min + Math.random() * (max - min);
@@ -116,33 +124,74 @@ function drawWireSphere(
   }
 }
 
-function boundaryRadius(width: number, height: number) {
-  const raw = Math.min(width, height) * BOUNDARY_RADIUS_RATIO;
-  return Math.min(BOUNDARY_RADIUS_MAX, Math.max(BOUNDARY_RADIUS_MIN, raw));
+function bulgeDepth(width: number, height: number) {
+  const raw = Math.min(width, height) * DOME_BULGE_RATIO;
+  return Math.min(DOME_BULGE_MAX, Math.max(DOME_BULGE_MIN, raw));
 }
 
-function drawCornerLining(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  radius: number,
-  opacity: number,
-) {
-  const corners: { x: number; y: number; start: number; end: number }[] = [
-    { x: 0, y: 0, start: 0, end: Math.PI / 2 },
-    { x: width, y: 0, start: Math.PI / 2, end: Math.PI },
-    { x: width, y: height, start: Math.PI, end: Math.PI * 1.5 },
-    { x: 0, y: height, start: Math.PI * 1.5, end: Math.PI * 2 },
+// A convex dome bulging into the page from a corner: the sphere's own center
+// sits outside the canvas, beyond the corner, so the visible cap curves
+// toward the viewer/particles rather than receding into the corner.
+function getCornerDomes(width: number, height: number): Dome[] {
+  const bulge = bulgeDepth(width, height);
+  const curve = bulge * DOME_CURVE_FACTOR;
+  const corners: Vec[] = [
+    { x: 0, y: 0 },
+    { x: width, y: 0 },
+    { x: width, y: height },
+    { x: 0, y: height },
   ];
-  for (const corner of corners) {
-    for (const inset of [0, 8]) {
-      ctx.strokeStyle = `rgba(255,255,255,${opacity * (inset === 0 ? 0.55 : 0.35)})`;
-      ctx.lineWidth = 1.2;
+  return corners.map((corner) => {
+    const dirX = corner.x === 0 ? 1 : -1;
+    const dirY = corner.y === 0 ? 1 : -1;
+    const center = { x: corner.x - dirX * curve, y: corner.y - dirY * curve };
+    return {
+      center,
+      outerRadius: curve + bulge,
+      centerAngle: Math.atan2(dirY, dirX),
+    };
+  });
+}
+
+function drawDome(ctx: CanvasRenderingContext2D, dome: Dome, opacity: number) {
+  const { center, outerRadius, centerAngle } = dome;
+  const innerRadius = outerRadius - bulgeDepthFromRadius(outerRadius);
+
+  ctx.strokeStyle = `rgba(255,255,255,${opacity * 0.55})`;
+  ctx.lineWidth = 1.3;
+  ctx.beginPath();
+  ctx.arc(
+    center.x,
+    center.y,
+    outerRadius,
+    centerAngle - DOME_HALF_ANGLE,
+    centerAngle + DOME_HALF_ANGLE,
+  );
+  ctx.stroke();
+
+  for (let r = 0; r < DOME_ROWS; r++) {
+    const t = r / (DOME_ROWS - 1);
+    const rowRadius = innerRadius + (outerRadius - innerRadius) * t;
+    for (let d = 0; d < DOME_DOTS_PER_ROW; d++) {
+      const a =
+        centerAngle -
+        DOME_HALF_ANGLE +
+        ((d + 0.5) / DOME_DOTS_PER_ROW) * DOME_HALF_ANGLE * 2;
+      const x = center.x + rowRadius * Math.cos(a);
+      const y = center.y + rowRadius * Math.sin(a);
+      const shade = 0.32 + 0.3 * Math.abs(Math.sin(r * 12.9898 + d * 4.1414));
+      ctx.fillStyle = `rgba(255,255,255,${opacity * shade})`;
       ctx.beginPath();
-      ctx.arc(corner.x, corner.y, radius - inset, corner.start, corner.end);
-      ctx.stroke();
+      ctx.arc(x, y, DOME_DOT_RADIUS, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
+}
+
+function bulgeDepthFromRadius(outerRadius: number) {
+  // the lattice only fills the outer shell of the sphere (the "bulge"),
+  // not the full radius back to its (offscreen) center
+  return outerRadius / (1 + DOME_CURVE_FACTOR);
 }
 
 function makeSeeding(width: number, height: number): Phase {
@@ -248,9 +297,10 @@ export default function ParticleCollision() {
         }
 
         const boundaryActive = phase.age >= BOUNDARY_DELAY_MS;
+        const domes = boundaryActive ? getCornerDomes(width, height) : [];
         if (boundaryActive) {
           const fadeT = Math.min((phase.age - BOUNDARY_DELAY_MS) / BOUNDARY_FADE_MS, 1);
-          drawCornerLining(ctx!, width, height, boundaryRadius(width, height), fadeT);
+          for (const dome of domes) drawDome(ctx!, dome, fadeT);
         }
 
         let alive = false;
@@ -263,28 +313,20 @@ export default function ParticleCollision() {
             f.pos.x += f.vel.x * dt;
             f.pos.y += f.vel.y * dt;
 
-            if (boundaryActive) {
-              const r = boundaryRadius(width, height);
-              const corners: Vec[] = [
-                { x: 0, y: 0 },
-                { x: width, y: 0 },
-                { x: width, y: height },
-                { x: 0, y: height },
-              ];
-              for (const corner of corners) {
-                const dx = f.pos.x - corner.x;
-                const dy = f.pos.y - corner.y;
-                const dist = Math.hypot(dx, dy);
-                if (dist <= r) {
-                  const nx = dist === 0 ? 1 : dx / dist;
-                  const ny = dist === 0 ? 0 : dy / dist;
-                  f.pos.x = corner.x + nx * r;
-                  f.pos.y = corner.y + ny * r;
-                  f.vel.x = 0;
-                  f.vel.y = 0;
-                  f.stopped = true;
-                  break;
-                }
+            for (const dome of domes) {
+              const dx = f.pos.x - dome.center.x;
+              const dy = f.pos.y - dome.center.y;
+              const dist = Math.hypot(dx, dy);
+              if (dist <= dome.outerRadius) {
+                const nx = dist === 0 ? 1 : dx / dist;
+                const ny = dist === 0 ? 0 : dy / dist;
+                f.pos.x = dome.center.x + nx * dome.outerRadius;
+                f.pos.y = dome.center.y + ny * dome.outerRadius;
+                f.vel.x = 0;
+                f.vel.y = 0;
+                f.stopped = true;
+                f.life = Math.min(f.life, f.age + QUICK_FADE_MS);
+                break;
               }
             }
           }
