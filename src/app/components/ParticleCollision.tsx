@@ -27,8 +27,12 @@ const WALL_VP_X_RATIO = 0.5; // vanishing point: where the dome recedes to
 const WALL_VP_Y_RATIO = 0.35;
 const WALL_RING_SPACING = 20; // px between concentric rings
 const WALL_ARC_DOT_SPACING = 20; // approx px between dots along a ring
-const WALL_DOT_MIN_RADIUS = 0.5; // near the vanishing point (far away)
-const WALL_DOT_MAX_RADIUS = 1.7; // near the edges (close to the viewer)
+const WALL_DOT_MIN_RADIUS = 0.6; // near the vanishing point (far away)
+const WALL_DOT_MAX_RADIUS = 3.2; // near the edges (close to the viewer)
+const WALL_MAX_TILT = 1.15; // rad; how obliquely we see a dome out at the rim
+const WALL_MIN_FORESHORTEN = 0.3; // domes never squash flatter than this
+const WALL_LIGHT_DIR = { x: -0.55, y: -0.83 }; // scene light, up and to the left
+const WALL_FLAT_DOT_RADIUS = 1.1; // below this a gradient is invisible, so fill flat
 const WALL_LIGHT_OFFSETS = [
   { dx: -0.16, dy: -0.05 },
   { dx: 0.03, dy: -0.11 },
@@ -134,16 +138,66 @@ function drawWireSphere(
   }
 }
 
-// A dot lattice arranged in concentric rings around a vanishing point, like
-// looking up into the inside of a spherical neutrino detector tank: dots
-// shrink and dim toward the center (far away) and grow toward the edges
-// (close to the viewer), reading as a concave dome rather than a flat grid.
-function drawDetectorWall(
+// One photomultiplier: a half sphere bulging out of the wall toward the viewer.
+// Straight ahead (tilt angle 0) we see the full circular bulge; further around
+// the dome we see it edge-on, so it foreshortens into an ellipse squashed along
+// the radial direction, and its highlight slides toward the vanishing point
+// because the dome's axis still points back at us.
+function drawDetectorDome(
   ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  opacity: number,
+  x: number,
+  y: number,
+  radius: number,
+  tilt: number, // radial direction of this dome, measured from the vanishing point
+  foreshorten: number, // 1 = seen head-on, →0 = seen edge-on
+  depthT: number,
+  shade: number,
 ) {
+  if (radius < WALL_FLAT_DOT_RADIUS) {
+    ctx.fillStyle = `rgba(255,255,255,${shade * 0.75})`;
+    ctx.beginPath();
+    ctx.ellipse(x, y, radius * foreshorten, radius, tilt, 0, Math.PI * 2);
+    ctx.fill();
+    return;
+  }
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(tilt); // local +x now points radially outward
+  ctx.scale(foreshorten, 1); // squash along that radial axis
+
+  // the scene light, expressed in this dome's own rotated frame
+  const lx = WALL_LIGHT_DIR.x * Math.cos(tilt) + WALL_LIGHT_DIR.y * Math.sin(tilt);
+  const ly = -WALL_LIGHT_DIR.x * Math.sin(tilt) + WALL_LIGHT_DIR.y * Math.cos(tilt);
+  const hx = (lx * 0.38 - depthT * 0.3) * radius;
+  const hy = ly * 0.38 * radius;
+
+  const gradient = ctx.createRadialGradient(hx, hy, radius * 0.05, 0, 0, radius * 1.05);
+  gradient.addColorStop(0, `rgba(255,255,255,${shade})`);
+  gradient.addColorStop(0.45, `rgba(255,255,255,${shade * 0.5})`);
+  gradient.addColorStop(1, `rgba(255,255,255,${shade * 0.12})`);
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.arc(0, 0, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// A lattice of half spheres arranged in concentric rings around a vanishing
+// point, like looking up into the inside of a spherical neutrino detector tank:
+// domes shrink and dim toward the center (far away) and grow toward the edges
+// (close to the viewer), reading as a concave dome rather than a flat grid.
+// The geometry only depends on the canvas size, so this renders once into an
+// offscreen sprite that each frame blits at the current opacity.
+function renderDetectorWall(width: number, height: number, dpr: number) {
+  const sprite = document.createElement("canvas");
+  sprite.width = Math.max(1, Math.round(width * dpr));
+  sprite.height = Math.max(1, Math.round(height * dpr));
+  const ctx = sprite.getContext("2d");
+  if (!ctx) return null;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const opacity = 1;
   const vp = { x: width * WALL_VP_X_RATIO, y: height * WALL_VP_Y_RATIO };
   const corners: Vec[] = [
     { x: 0, y: 0 },
@@ -160,6 +214,9 @@ function drawDetectorWall(
     const depthT = i / ringCount; // 0 near the vanishing point, 1 near the edges
     const dotRadius =
       WALL_DOT_MIN_RADIUS + (WALL_DOT_MAX_RADIUS - WALL_DOT_MIN_RADIUS) * depthT;
+    // how obliquely this ring is seen, and how much that squashes each dome
+    const tiltAngle = depthT * WALL_MAX_TILT;
+    const foreshorten = Math.max(WALL_MIN_FORESHORTEN, Math.cos(tiltAngle));
     for (let d = 0; d < dotsInRing; d++) {
       const angle = (d / dotsInRing) * Math.PI * 2;
       const x = vp.x + radius * Math.cos(angle);
@@ -168,10 +225,7 @@ function drawDetectorWall(
       const shade =
         (0.16 + 0.18 * Math.abs(Math.sin(i * 12.9898 + d * 4.1414))) *
         (0.4 + 0.6 * depthT);
-      ctx.fillStyle = `rgba(255,255,255,${opacity * shade})`;
-      ctx.beginPath();
-      ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
-      ctx.fill();
+      drawDetectorDome(ctx, x, y, dotRadius, angle, foreshorten, depthT, opacity * shade);
     }
   }
 
@@ -186,6 +240,8 @@ function drawDetectorWall(
     ctx.arc(lx, ly, 44, 0, Math.PI * 2);
     ctx.fill();
   }
+
+  return sprite;
 }
 
 function makeSeeding(width: number, height: number): Phase {
@@ -237,6 +293,7 @@ export default function ParticleCollision() {
 
     let width = 0;
     let height = 0;
+    let wallSprite: HTMLCanvasElement | null = null;
 
     function resize() {
       const rect = canvas!.getBoundingClientRect();
@@ -246,6 +303,7 @@ export default function ParticleCollision() {
       canvas!.width = width * dpr;
       canvas!.height = height * dpr;
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
+      wallSprite = null; // the dome lattice depends on the canvas size
     }
     resize();
     window.addEventListener("resize", resize);
@@ -309,7 +367,17 @@ export default function ParticleCollision() {
             );
           }
         }
-        if (wallOpacity > 0) drawDetectorWall(ctx!, width, height, wallOpacity);
+        if (wallOpacity > 0) {
+          if (!wallSprite) {
+            wallSprite = renderDetectorWall(width, height, window.devicePixelRatio || 1);
+          }
+          if (wallSprite) {
+            ctx!.save();
+            ctx!.globalAlpha = wallOpacity;
+            ctx!.drawImage(wallSprite, 0, 0, width, height);
+            ctx!.restore();
+          }
+        }
 
         let alive = false;
         for (const f of phase.fragments) {
