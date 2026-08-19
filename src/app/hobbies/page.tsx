@@ -31,7 +31,7 @@ export default function HobbiesPage() {
           </h2>
           <div
             className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
-            style={{ width: 360, height: 720 }}
+            style={{ width: 720, height: 720 }}
           >
             <ImageCarousel images={HOBBY_IMAGES} />
           </div>
