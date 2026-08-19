@@ -18,17 +18,19 @@ const CHORD_COUNT_MIN = 14;
 const CHORD_COUNT_MAX = 26;
 const ARC_COUNT_MIN = 4;
 const ARC_COUNT_MAX = 7;
-const BOUNDARY_DELAY_MS = 2000; // detectors appear/activate this long after burst
-const BOUNDARY_FADE_MS = 600;
-const DOME_BULGE_RATIO = 0.22; // how far the dome pokes into the page, relative to min(width,height)
-const DOME_BULGE_MIN = 140;
-const DOME_BULGE_MAX = 260;
-const DOME_CURVE_FACTOR = 3; // bigger = larger, gentler sphere (more convex, less tight)
-const DOME_HALF_ANGLE = 0.58; // ~33deg visible slice of the sphere
-const DOME_ROWS = 6;
-const DOME_DOTS_PER_ROW = 13;
-const DOME_DOT_RADIUS = 1.6;
-const QUICK_FADE_MS = 350; // how fast a fragment vanishes once it touches a detector
+const QUICK_FADE_MS = 350; // how fast a fragment vanishes once it touches the detector wall
+
+const WALL_DELAY_MS = 2000; // detector wall appears this long after the burst
+const WALL_FADE_IN_MS = 700;
+const WALL_FADE_OUT_MS = 800; // how long the wall takes to disappear once every particle has arrived
+const WALL_SPACING = 18; // px between lattice dots
+const WALL_DOT_RADIUS = 1;
+const WALL_LIGHTS = [
+  { x: 0.22, y: 0.08 },
+  { x: 0.4, y: 0.04 },
+  { x: 0.58, y: 0.09 },
+  { x: 0.74, y: 0.05 },
+];
 
 type Vec = { x: number; y: number };
 
@@ -57,9 +59,13 @@ type Fragment = {
 type Phase =
   | { kind: "waiting"; until: number }
   | { kind: "seeding"; seeds: [Seed, Seed]; target: Vec }
-  | { kind: "bursting"; fragments: Fragment[]; age: number; origin: Vec };
-
-type Dome = { center: Vec; outerRadius: number; centerAngle: number };
+  | {
+      kind: "bursting";
+      fragments: Fragment[];
+      age: number;
+      origin: Vec;
+      settledAt: number | null;
+    };
 
 function rand(min: number, max: number) {
   return min + Math.random() * (max - min);
@@ -124,74 +130,40 @@ function drawWireSphere(
   }
 }
 
-function bulgeDepth(width: number, height: number) {
-  const raw = Math.min(width, height) * DOME_BULGE_RATIO;
-  return Math.min(DOME_BULGE_MAX, Math.max(DOME_BULGE_MIN, raw));
-}
-
-// A convex dome bulging into the page from a corner: the sphere's own center
-// sits outside the canvas, beyond the corner, so the visible cap curves
-// toward the viewer/particles rather than receding into the corner.
-function getCornerDomes(width: number, height: number): Dome[] {
-  const bulge = bulgeDepth(width, height);
-  const curve = bulge * DOME_CURVE_FACTOR;
-  const corners: Vec[] = [
-    { x: 0, y: 0 },
-    { x: width, y: 0 },
-    { x: width, y: height },
-    { x: 0, y: height },
-  ];
-  return corners.map((corner) => {
-    const dirX = corner.x === 0 ? 1 : -1;
-    const dirY = corner.y === 0 ? 1 : -1;
-    const center = { x: corner.x - dirX * curve, y: corner.y - dirY * curve };
-    return {
-      center,
-      outerRadius: curve + bulge,
-      centerAngle: Math.atan2(dirY, dirX),
-    };
-  });
-}
-
-function drawDome(ctx: CanvasRenderingContext2D, dome: Dome, opacity: number) {
-  const { center, outerRadius, centerAngle } = dome;
-  const innerRadius = outerRadius - bulgeDepthFromRadius(outerRadius);
-
-  ctx.strokeStyle = `rgba(255,255,255,${opacity * 0.55})`;
-  ctx.lineWidth = 1.3;
-  ctx.beginPath();
-  ctx.arc(
-    center.x,
-    center.y,
-    outerRadius,
-    centerAngle - DOME_HALF_ANGLE,
-    centerAngle + DOME_HALF_ANGLE,
-  );
-  ctx.stroke();
-
-  for (let r = 0; r < DOME_ROWS; r++) {
-    const t = r / (DOME_ROWS - 1);
-    const rowRadius = innerRadius + (outerRadius - innerRadius) * t;
-    for (let d = 0; d < DOME_DOTS_PER_ROW; d++) {
-      const a =
-        centerAngle -
-        DOME_HALF_ANGLE +
-        ((d + 0.5) / DOME_DOTS_PER_ROW) * DOME_HALF_ANGLE * 2;
-      const x = center.x + rowRadius * Math.cos(a);
-      const y = center.y + rowRadius * Math.sin(a);
-      const shade = 0.32 + 0.3 * Math.abs(Math.sin(r * 12.9898 + d * 4.1414));
+// A dense dot lattice covering the whole page, echoing the inside wall of a
+// neutrino detector tank. Fades in as the wall "appears" and fades out once
+// every fragment has reached it.
+function drawDetectorWall(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  opacity: number,
+) {
+  const cols = Math.ceil(width / WALL_SPACING);
+  const rows = Math.ceil(height / WALL_SPACING);
+  for (let r = 0; r <= rows; r++) {
+    for (let c = 0; c <= cols; c++) {
+      const x = c * WALL_SPACING;
+      const y = r * WALL_SPACING;
+      const shade = 0.12 + 0.14 * Math.abs(Math.sin(r * 12.9898 + c * 4.1414));
       ctx.fillStyle = `rgba(255,255,255,${opacity * shade})`;
       ctx.beginPath();
-      ctx.arc(x, y, DOME_DOT_RADIUS, 0, Math.PI * 2);
+      ctx.arc(x, y, WALL_DOT_RADIUS, 0, Math.PI * 2);
       ctx.fill();
     }
   }
-}
 
-function bulgeDepthFromRadius(outerRadius: number) {
-  // the lattice only fills the outer shell of the sphere (the "bulge"),
-  // not the full radius back to its (offscreen) center
-  return outerRadius / (1 + DOME_CURVE_FACTOR);
+  for (const light of WALL_LIGHTS) {
+    const lx = width * light.x;
+    const ly = height * light.y;
+    const gradient = ctx.createRadialGradient(lx, ly, 0, lx, ly, 44);
+    gradient.addColorStop(0, `rgba(255,255,255,${opacity * 0.55})`);
+    gradient.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(lx, ly, 44, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 function makeSeeding(width: number, height: number): Phase {
@@ -229,7 +201,7 @@ function burstAt(origin: Vec): Phase {
       stopped: false,
     };
   });
-  return { kind: "bursting", fragments, age: 0, origin };
+  return { kind: "bursting", fragments, age: 0, origin, settledAt: null };
 }
 
 export default function ParticleCollision() {
@@ -296,12 +268,26 @@ export default function ParticleCollision() {
           ctx!.stroke();
         }
 
-        const boundaryActive = phase.age >= BOUNDARY_DELAY_MS;
-        const domes = boundaryActive ? getCornerDomes(width, height) : [];
-        if (boundaryActive) {
-          const fadeT = Math.min((phase.age - BOUNDARY_DELAY_MS) / BOUNDARY_FADE_MS, 1);
-          for (const dome of domes) drawDome(ctx!, dome, fadeT);
+        const wallActive = phase.age >= WALL_DELAY_MS;
+
+        // has every fragment either touched the wall or faded out on its own?
+        if (wallActive && phase.settledAt === null) {
+          const settled = phase.fragments.every((f) => f.stopped || f.age >= f.life);
+          if (settled) phase.settledAt = phase.age;
         }
+
+        let wallOpacity = 0;
+        if (wallActive) {
+          if (phase.settledAt === null) {
+            wallOpacity = Math.min((phase.age - WALL_DELAY_MS) / WALL_FADE_IN_MS, 1);
+          } else {
+            wallOpacity = Math.max(
+              0,
+              1 - (phase.age - phase.settledAt) / WALL_FADE_OUT_MS,
+            );
+          }
+        }
+        if (wallOpacity > 0) drawDetectorWall(ctx!, width, height, wallOpacity);
 
         let alive = false;
         for (const f of phase.fragments) {
@@ -313,20 +299,27 @@ export default function ParticleCollision() {
             f.pos.x += f.vel.x * dt;
             f.pos.y += f.vel.y * dt;
 
-            for (const dome of domes) {
-              const dx = f.pos.x - dome.center.x;
-              const dy = f.pos.y - dome.center.y;
-              const dist = Math.hypot(dx, dy);
-              if (dist <= dome.outerRadius) {
-                const nx = dist === 0 ? 1 : dx / dist;
-                const ny = dist === 0 ? 0 : dy / dist;
-                f.pos.x = dome.center.x + nx * dome.outerRadius;
-                f.pos.y = dome.center.y + ny * dome.outerRadius;
+            if (wallActive) {
+              let touched = false;
+              if (f.pos.x <= 0) {
+                f.pos.x = 0;
+                touched = true;
+              } else if (f.pos.x >= width) {
+                f.pos.x = width;
+                touched = true;
+              }
+              if (f.pos.y <= 0) {
+                f.pos.y = 0;
+                touched = true;
+              } else if (f.pos.y >= height) {
+                f.pos.y = height;
+                touched = true;
+              }
+              if (touched) {
                 f.vel.x = 0;
                 f.vel.y = 0;
                 f.stopped = true;
                 f.life = Math.min(f.life, f.age + QUICK_FADE_MS);
-                break;
               }
             }
           }
@@ -335,7 +328,9 @@ export default function ParticleCollision() {
           const opacity = 1 - lifeT;
           drawWireSphere(ctx!, f.pos.x, f.pos.y, f.size, opacity * 0.9, f.lines);
         }
-        if (!alive) phase = { kind: "waiting", until: now + CYCLE_PAUSE_MS };
+
+        const wallDone = phase.settledAt !== null && wallOpacity <= 0;
+        if (!alive && wallDone) phase = { kind: "waiting", until: now + CYCLE_PAUSE_MS };
       }
 
       frameId = requestAnimationFrame(step);
