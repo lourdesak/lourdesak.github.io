@@ -1,3 +1,4 @@
+import HoverPhoto from "./components/HoverPhoto";
 import NameWave from "./components/NameWave";
 import ParticleCollision from "./components/ParticleCollision";
 
@@ -10,7 +11,15 @@ export default function Home() {
           <NameWave name="Lourdes Akirtha" />
           <p className="text-lg text-zinc-600 dark:text-zinc-400">
             22-year-old physics PhD student at the University of Hawaiʻi at
-            Mānoa. My roots trace back to a coastal city in India called "Tuticorin"
+            Mānoa. My roots trace back to a coastal city in India called{" "}
+            <HoverPhoto
+              src="/tuticorin.jpg"
+              alt="Fishing boats in shallow turquoise water off the coast of Thoothukudi (Tuticorin), India"
+              width={636}
+              height={800}
+            >
+              <span className="text-sky-300">Tuticorin</span>
+            </HoverPhoto>{" "}
             with recent years spent in Philadelphia and Honolulu.
             Reading is my shining hobby and passion, and I&apos;ve contributed
             primarily as a researcher and a mentor across multiple projects. May it be coding, 
@@ -58,6 +67,10 @@ export default function Home() {
           </ul>
         </section>
       </main>
+
+      <footer className="absolute bottom-3 right-4 z-10 text-[10px] leading-tight text-zinc-400 dark:text-zinc-600">
+        Tuticorin photo by visualsbysaud &middot; tntourismoffcl
+      </footer>
     </div>
   );
 }
