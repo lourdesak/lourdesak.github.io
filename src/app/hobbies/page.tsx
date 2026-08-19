@@ -1,8 +1,8 @@
-import { Playfair_Display } from "next/font/google";
+import { Josefin_Sans } from "next/font/google";
 import PageShell from "../components/PageShell";
 import SquareGrid from "../components/SquareGrid";
 
-const playfairDisplay = Playfair_Display({
+const josefinSans = Josefin_Sans({
   subsets: ["latin"],
   weight: ["500", "600"],
   style: ["italic"],
@@ -21,7 +21,7 @@ export default function HobbiesPage() {
       title="Hobbies"
       header={
         <h2
-          className={`${playfairDisplay.className} animate-[fade-in_2s_ease-out] mb-8 text-center text-2xl italic text-zinc-800 dark:text-zinc-100`}
+          className={`${josefinSans.className} animate-[fade-in_2s_ease-out] mb-8 text-center text-2xl italic text-zinc-800 dark:text-zinc-100`}
         >
           Crossroads of Travelling & Photography
         </h2>
