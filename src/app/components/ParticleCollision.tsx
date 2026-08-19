@@ -4,6 +4,19 @@ import { useEffect, useRef } from "react";
 
 const SEED_SPEED = 0.22; // px/ms
 const SEED_RADIUS = 28;
+// Pointer proximity charges up the approach. The boost is deliberately spent
+// on the run-in rather than the burst: the aftermath keeps roughly its usual
+// pacing, so a hard hit reads as livelier without blowing the sequence past
+// the viewer in under a second.
+const POINTER_BOOST_MAX = 2; // approach multiplier with the pointer dead centre
+const POINTER_BOOST_FALLOFF = 0.55; // fraction of the half-diagonal the boost reaches
+const POINTER_BOOST_EASE_MS = 160; // how quickly the boost chases the pointer
+const ENERGY_SPEED_GAIN = 0.25; // energy → fragment speed (kept low on purpose)
+const ENERGY_COUNT_GAIN = 0.35; // energy → fragment count (free: costs no dwell time)
+const ENERGY_WALL_GAIN = 0.15; // energy → how much sooner the wall arrives
+const SEED_SPIN_MIN = 0.0016; // rad/ms
+const SEED_SPIN_MAX = 0.0042;
+const FRAGMENT_SPIN_MAX = 0.0022;
 const BURST_MIN = 24;
 const BURST_MAX = 40;
 const FRAGMENT_SPEED_MIN = 0.02; // px/ms
@@ -46,9 +59,21 @@ type Vec = { x: number; y: number };
 
 type SphereLine =
   | { kind: "chord"; a1: number; a2: number; width: number; alpha: number }
-  | { kind: "arc"; rotation: number; ry: number; width: number; alpha: number };
+  | {
+      kind: "arc";
+      rotation: number;
+      ry: number;
+      width: number;
+      alpha: number;
+      phase: number;
+    };
 
-type Seed = {
+type Spinner = {
+  spin: number; // rad/ms, signed
+  angle: number; // accumulated rotation
+};
+
+type Seed = Spinner & {
   pos: Vec;
   vel: Vec;
   target: Vec;
@@ -56,7 +81,7 @@ type Seed = {
   lines: SphereLine[];
 };
 
-type Fragment = {
+type Fragment = Spinner & {
   pos: Vec;
   vel: Vec;
   age: number;
@@ -75,6 +100,8 @@ type Phase =
       age: number;
       origin: Vec;
       settledAt: number | null;
+      energy: number; // 1 = a drifting collision, higher = a hard one
+      wallDelay: number;
     };
 
 function rand(min: number, max: number) {
@@ -107,6 +134,7 @@ function generateWireSphereLines(): SphereLine[] {
       ry: rand(0.15, 0.9),
       width: rand(0.6, 1.3),
       alpha: rand(0.25, 0.55),
+      phase: rand(0, Math.PI * 2),
     });
   }
   return lines;
@@ -119,7 +147,12 @@ function drawWireSphere(
   radius: number,
   opacity: number,
   lines: SphereLine[],
+  // How far the sphere has turned about its own axis. Defaults to 0 so a call
+  // site that doesn't spin still draws a complete wireframe.
+  angle = 0,
 ) {
+  // a sphere's silhouette doesn't change as it turns, so only the wireframe
+  // inside it moves
   ctx.strokeStyle = `rgba(255,255,255,${opacity})`;
   ctx.lineWidth = 1.4;
   ctx.beginPath();
@@ -130,16 +163,24 @@ function drawWireSphere(
     ctx.strokeStyle = `rgba(255,255,255,${opacity * line.alpha})`;
     ctx.lineWidth = line.width;
     if (line.kind === "chord") {
+      // both endpoints ride around the surface as it rotates
+      const a1 = line.a1 + angle;
+      const a2 = line.a2 + angle;
       ctx.beginPath();
-      ctx.moveTo(x + radius * Math.cos(line.a1), y + radius * Math.sin(line.a1));
-      ctx.lineTo(x + radius * Math.cos(line.a2), y + radius * Math.sin(line.a2));
+      ctx.moveTo(x + radius * Math.cos(a1), y + radius * Math.sin(a1));
+      ctx.lineTo(x + radius * Math.cos(a2), y + radius * Math.sin(a2));
       ctx.stroke();
     } else {
+      // a latitude ring turning in depth: it opens out to a full circle and
+      // flattens to a line as it goes edge-on, which is what makes the spin
+      // read as three-dimensional instead of a flat pinwheel. It never fully
+      // collapses, so the wireframe keeps its density throughout.
+      const openness = 0.18 + 0.82 * Math.abs(Math.cos(angle + line.phase));
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate(line.rotation);
       ctx.beginPath();
-      ctx.ellipse(0, 0, radius, radius * line.ry, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, radius, radius * line.ry * openness, 0, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
     }
@@ -335,12 +376,16 @@ function renderDetectorWall(width: number, height: number, dpr: number) {
 function makeSeeding(width: number, height: number): Phase {
   const y = rand(height * 0.3, height * 0.7);
   const target: Vec = { x: width / 2, y };
+  // the two spheres counter-rotate at unrelated rates and start at unrelated
+  // phases, so the pair never reads as one mirrored object
   const leftSeed: Seed = {
     pos: { x: -SEED_RADIUS - 10, y },
     vel: { x: SEED_SPEED, y: 0 },
     target,
     arrived: false,
     lines: generateWireSphereLines(),
+    spin: rand(SEED_SPIN_MIN, SEED_SPIN_MAX),
+    angle: rand(0, Math.PI * 2),
   };
   const rightSeed: Seed = {
     pos: { x: width + SEED_RADIUS + 10, y },
@@ -348,15 +393,22 @@ function makeSeeding(width: number, height: number): Phase {
     target,
     arrived: false,
     lines: generateWireSphereLines(),
+    spin: -rand(SEED_SPIN_MIN, SEED_SPIN_MAX),
+    angle: rand(0, Math.PI * 2),
   };
   return { kind: "seeding", seeds: [leftSeed, rightSeed], target };
 }
 
-function burstAt(origin: Vec): Phase {
-  const count = Math.floor(rand(BURST_MIN, BURST_MAX));
+// `energy` is the approach multiplier the seeds carried into the collision. It
+// mostly buys more fragments and a bigger shockwave rather than more speed:
+// speed is what shortens the fragments' time on screen, so it stays gentle.
+function burstAt(origin: Vec, energy: number): Phase {
+  const speedScale = 1 + (energy - 1) * ENERGY_SPEED_GAIN;
+  const countScale = 1 + (energy - 1) * ENERGY_COUNT_GAIN;
+  const count = Math.floor(rand(BURST_MIN, BURST_MAX) * countScale);
   const fragments: Fragment[] = Array.from({ length: count }, () => {
     const angle = rand(0, Math.PI * 2);
-    const speed = rand(FRAGMENT_SPEED_MIN, FRAGMENT_SPEED_MAX);
+    const speed = rand(FRAGMENT_SPEED_MIN, FRAGMENT_SPEED_MAX) * speedScale;
     return {
       pos: { x: origin.x, y: origin.y },
       vel: { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed },
@@ -365,9 +417,20 @@ function burstAt(origin: Vec): Phase {
       size: rand(FRAGMENT_SIZE_MIN, FRAGMENT_SIZE_MAX),
       lines: generateWireSphereLines(),
       stopped: false,
+      // the collision's angular momentum has to go somewhere
+      spin: rand(-FRAGMENT_SPIN_MAX, FRAGMENT_SPIN_MAX),
+      angle: rand(0, Math.PI * 2),
     };
   });
-  return { kind: "bursting", fragments, age: 0, origin, settledAt: null };
+  return {
+    kind: "bursting",
+    fragments,
+    age: 0,
+    origin,
+    settledAt: null,
+    energy,
+    wallDelay: WALL_DELAY_MS / (1 + (energy - 1) * ENERGY_WALL_GAIN),
+  };
 }
 
 export default function ParticleCollision() {
@@ -396,6 +459,32 @@ export default function ParticleCollision() {
     resize();
     window.addEventListener("resize", resize);
 
+    const pointer = { x: 0, y: 0, inside: false };
+    function handlePointerMove(e: MouseEvent) {
+      const rect = canvas!.getBoundingClientRect();
+      pointer.x = e.clientX - rect.left;
+      pointer.y = e.clientY - rect.top;
+      pointer.inside = true;
+    }
+    function handlePointerLeave() {
+      pointer.inside = false;
+    }
+    window.addEventListener("mousemove", handlePointerMove);
+    document.addEventListener("mouseleave", handlePointerLeave);
+
+    // How hard the pointer is driving the approach: 1 when it's far away or off
+    // screen, rising to POINTER_BOOST_MAX right on the collision point.
+    function targetBoost() {
+      if (!pointer.inside) return 1;
+      const reach = (Math.hypot(width, height) / 2) * POINTER_BOOST_FALLOFF;
+      if (reach <= 0) return 1;
+      const dist = Math.hypot(pointer.x - width / 2, pointer.y - height / 2);
+      const t = Math.min(dist / reach, 1);
+      const nearness = 1 - t * t * (3 - 2 * t); // smoothstep, 1 at dead centre
+      return 1 + (POINTER_BOOST_MAX - 1) * nearness;
+    }
+
+    let boost = 1; // eased, so the spheres accelerate instead of snapping
     let phase: Phase = { kind: "waiting", until: performance.now() + 500 };
     let lastTime = performance.now();
     let frameId: number;
@@ -405,14 +494,18 @@ export default function ParticleCollision() {
       lastTime = now;
       ctx!.clearRect(0, 0, width, height);
 
+      boost += (targetBoost() - boost) * Math.min(1, dt / POINTER_BOOST_EASE_MS);
+
       if (phase.kind === "waiting") {
         if (now >= phase.until) phase = makeSeeding(width, height);
       } else if (phase.kind === "seeding") {
         let allArrived = true;
         for (const seed of phase.seeds) {
+          // a sphere driven harder also tumbles faster
+          seed.angle += seed.spin * dt * (0.5 + 0.5 * boost);
           if (!seed.arrived) {
             const prevDx = seed.target.x - seed.pos.x;
-            seed.pos.x += seed.vel.x * dt;
+            seed.pos.x += seed.vel.x * dt * boost;
             const newDx = seed.target.x - seed.pos.x;
             if (Math.sign(prevDx) !== Math.sign(newDx) || Math.abs(newDx) < 1) {
               seed.pos.x = seed.target.x;
@@ -422,21 +515,34 @@ export default function ParticleCollision() {
           if (!seed.arrived) allArrived = false;
         }
         for (const seed of phase.seeds) {
-          drawWireSphere(ctx!, seed.pos.x, seed.pos.y, SEED_RADIUS, 0.9, seed.lines);
+          drawWireSphere(
+            ctx!,
+            seed.pos.x,
+            seed.pos.y,
+            SEED_RADIUS,
+            0.9,
+            seed.lines,
+            seed.angle,
+          );
         }
-        if (allArrived) phase = burstAt(phase.target);
+        // whatever speed they were carrying at impact becomes the burst energy
+        if (allArrived) phase = burstAt(phase.target, boost);
       } else if (phase.kind === "bursting") {
         phase.age += dt;
         const ringT = Math.min(phase.age / RING_LIFE_MS, 1);
         if (ringT < 1) {
-          ctx!.strokeStyle = `rgba(255,255,255,${0.5 * (1 - ringT)})`;
+          // a harder hit throws a brighter, wider shockwave — this is where the
+          // extra energy mostly shows, since it costs no dwell time
+          const ringAlpha = Math.min(0.75, 0.5 * phase.energy);
+          const ringSpread = 90 * (1 + (phase.energy - 1) * 0.45);
+          ctx!.strokeStyle = `rgba(255,255,255,${ringAlpha * (1 - ringT)})`;
           ctx!.lineWidth = 1.5;
           ctx!.beginPath();
-          ctx!.arc(phase.origin.x, phase.origin.y, 6 + ringT * 90, 0, Math.PI * 2);
+          ctx!.arc(phase.origin.x, phase.origin.y, 6 + ringT * ringSpread, 0, Math.PI * 2);
           ctx!.stroke();
         }
 
-        const wallActive = phase.age >= WALL_DELAY_MS;
+        const wallActive = phase.age >= phase.wallDelay;
 
         // has every fragment either touched the wall or faded out on its own?
         if (wallActive && phase.settledAt === null) {
@@ -447,7 +553,7 @@ export default function ParticleCollision() {
         let wallOpacity = 0;
         if (wallActive) {
           if (phase.settledAt === null) {
-            wallOpacity = Math.min((phase.age - WALL_DELAY_MS) / WALL_FADE_IN_MS, 1);
+            wallOpacity = Math.min((phase.age - phase.wallDelay) / WALL_FADE_IN_MS, 1);
           } else {
             wallOpacity = Math.max(
               0,
@@ -473,6 +579,8 @@ export default function ParticleCollision() {
           f.age += dt;
           if (f.age >= f.life) continue;
           alive = true;
+
+          f.angle += f.spin * dt;
 
           if (!f.stopped) {
             f.pos.x += f.vel.x * dt;
@@ -505,7 +613,7 @@ export default function ParticleCollision() {
 
           const lifeT = f.age / f.life;
           const opacity = 1 - lifeT;
-          drawWireSphere(ctx!, f.pos.x, f.pos.y, f.size, opacity * 0.9, f.lines);
+          drawWireSphere(ctx!, f.pos.x, f.pos.y, f.size, opacity * 0.9, f.lines, f.angle);
         }
 
         const wallDone = phase.settledAt !== null && wallOpacity <= 0;
@@ -520,6 +628,8 @@ export default function ParticleCollision() {
     return () => {
       cancelAnimationFrame(frameId);
       window.removeEventListener("resize", resize);
+      window.removeEventListener("mousemove", handlePointerMove);
+      document.removeEventListener("mouseleave", handlePointerLeave);
     };
   }, []);
 
