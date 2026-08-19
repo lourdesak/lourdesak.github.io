@@ -23,13 +23,17 @@ const QUICK_FADE_MS = 350; // how fast a fragment vanishes once it touches the d
 const WALL_DELAY_MS = 2000; // detector wall appears this long after the burst
 const WALL_FADE_IN_MS = 700;
 const WALL_FADE_OUT_MS = 800; // how long the wall takes to disappear once every particle has arrived
-const WALL_SPACING = 18; // px between lattice dots
-const WALL_DOT_RADIUS = 1;
-const WALL_LIGHTS = [
-  { x: 0.22, y: 0.08 },
-  { x: 0.4, y: 0.04 },
-  { x: 0.58, y: 0.09 },
-  { x: 0.74, y: 0.05 },
+const WALL_VP_X_RATIO = 0.5; // vanishing point: where the dome recedes to
+const WALL_VP_Y_RATIO = 0.35;
+const WALL_RING_SPACING = 20; // px between concentric rings
+const WALL_ARC_DOT_SPACING = 20; // approx px between dots along a ring
+const WALL_DOT_MIN_RADIUS = 0.5; // near the vanishing point (far away)
+const WALL_DOT_MAX_RADIUS = 1.7; // near the edges (close to the viewer)
+const WALL_LIGHT_OFFSETS = [
+  { dx: -0.16, dy: -0.05 },
+  { dx: 0.03, dy: -0.11 },
+  { dx: 0.2, dy: -0.02 },
+  { dx: 0.36, dy: -0.08 },
 ];
 
 type Vec = { x: number; y: number };
@@ -130,32 +134,50 @@ function drawWireSphere(
   }
 }
 
-// A dense dot lattice covering the whole page, echoing the inside wall of a
-// neutrino detector tank. Fades in as the wall "appears" and fades out once
-// every fragment has reached it.
+// A dot lattice arranged in concentric rings around a vanishing point, like
+// looking up into the inside of a spherical neutrino detector tank: dots
+// shrink and dim toward the center (far away) and grow toward the edges
+// (close to the viewer), reading as a concave dome rather than a flat grid.
 function drawDetectorWall(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
   opacity: number,
 ) {
-  const cols = Math.ceil(width / WALL_SPACING);
-  const rows = Math.ceil(height / WALL_SPACING);
-  for (let r = 0; r <= rows; r++) {
-    for (let c = 0; c <= cols; c++) {
-      const x = c * WALL_SPACING;
-      const y = r * WALL_SPACING;
-      const shade = 0.12 + 0.14 * Math.abs(Math.sin(r * 12.9898 + c * 4.1414));
+  const vp = { x: width * WALL_VP_X_RATIO, y: height * WALL_VP_Y_RATIO };
+  const corners: Vec[] = [
+    { x: 0, y: 0 },
+    { x: width, y: 0 },
+    { x: width, y: height },
+    { x: 0, y: height },
+  ];
+  const maxRadius = Math.max(...corners.map((c) => Math.hypot(c.x - vp.x, c.y - vp.y)));
+  const ringCount = Math.max(1, Math.round(maxRadius / WALL_RING_SPACING));
+
+  for (let i = 1; i <= ringCount; i++) {
+    const radius = i * WALL_RING_SPACING;
+    const dotsInRing = Math.max(6, Math.round((2 * Math.PI * radius) / WALL_ARC_DOT_SPACING));
+    const depthT = i / ringCount; // 0 near the vanishing point, 1 near the edges
+    const dotRadius =
+      WALL_DOT_MIN_RADIUS + (WALL_DOT_MAX_RADIUS - WALL_DOT_MIN_RADIUS) * depthT;
+    for (let d = 0; d < dotsInRing; d++) {
+      const angle = (d / dotsInRing) * Math.PI * 2;
+      const x = vp.x + radius * Math.cos(angle);
+      const y = vp.y + radius * Math.sin(angle);
+      if (x < -20 || x > width + 20 || y < -20 || y > height + 20) continue;
+      const shade =
+        (0.16 + 0.18 * Math.abs(Math.sin(i * 12.9898 + d * 4.1414))) *
+        (0.4 + 0.6 * depthT);
       ctx.fillStyle = `rgba(255,255,255,${opacity * shade})`;
       ctx.beginPath();
-      ctx.arc(x, y, WALL_DOT_RADIUS, 0, Math.PI * 2);
+      ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
       ctx.fill();
     }
   }
 
-  for (const light of WALL_LIGHTS) {
-    const lx = width * light.x;
-    const ly = height * light.y;
+  for (const light of WALL_LIGHT_OFFSETS) {
+    const lx = vp.x + light.dx * maxRadius;
+    const ly = vp.y + light.dy * maxRadius;
     const gradient = ctx.createRadialGradient(lx, ly, 0, lx, ly, 44);
     gradient.addColorStop(0, `rgba(255,255,255,${opacity * 0.55})`);
     gradient.addColorStop(1, "rgba(255,255,255,0)");
