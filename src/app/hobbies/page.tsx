@@ -11,8 +11,8 @@ const HOBBIES = [
 export default function HobbiesPage() {
   return (
     <PageShell title="Hobbies">
-      <div className="flex flex-col gap-4">
-        <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+      <div className="flex flex-col gap-12">
+        <h2 className="text-center text-2xl font-medium text-zinc-800 dark:text-zinc-100">
           Crossroads of Travelling & Photography
         </h2>
         <SquareGrid items={HOBBIES} />
