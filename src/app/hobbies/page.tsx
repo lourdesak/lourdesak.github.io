@@ -12,12 +12,12 @@ const josefinSans = Josefin_Sans({
 const MOSAIC_SIZE = 720;
 
 const MOSAIC_TILES = [
-  { x: 0, y: 0, w: 460, h: 220 },
-  { x: 472, y: 0, w: 248, h: 220 },
-  { x: 0, y: 232, w: 248, h: 220 },
-  { x: 260, y: 232, w: 460, h: 220 },
-  { x: 0, y: 464, w: 340, h: 256 },
-  { x: 352, y: 464, w: 368, h: 256 },
+  { x: 0, y: 0, w: 220, h: 354 },
+  { x: 0, y: 366, w: 220, h: 354 },
+  { x: 232, y: 0, w: 488, h: 171 },
+  { x: 232, y: 183, w: 488, h: 171 },
+  { x: 232, y: 366, w: 488, h: 171 },
+  { x: 232, y: 549, w: 488, h: 171 },
 ];
 
 const MOSAIC_IMAGES: { src: string; alt: string }[][] = [[], [], [], [], [], []];
