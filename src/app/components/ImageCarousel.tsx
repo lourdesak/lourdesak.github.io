@@ -16,7 +16,7 @@ export default function ImageCarousel({ images }: { images: CarouselImage[] }) {
   const [transitioning, setTransitioning] = useState(false);
 
   useEffect(() => {
-    if (!hovered) return;
+    if (!hovered || images.length === 0) return;
 
     const interval = setInterval(() => {
       setTick((t) => t - 1);
@@ -24,7 +24,17 @@ export default function ImageCarousel({ images }: { images: CarouselImage[] }) {
       setTimeout(() => setTransitioning(false), TRANSITION_MS);
     }, INTERVAL_MS);
     return () => clearInterval(interval);
-  }, [hovered]);
+  }, [hovered, images.length]);
+
+  if (images.length === 0) {
+    return (
+      <div
+        className="absolute inset-0 overflow-hidden bg-black"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      />
+    );
+  }
 
   const mod = (n: number) => ((n % images.length) + images.length) % images.length;
   const current = mod(tick);
