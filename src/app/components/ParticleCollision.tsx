@@ -37,12 +37,12 @@ function rand(min: number, max: number) {
   return min + Math.random() * (max - min);
 }
 
-function edgePoint(width: number, height: number): Vec {
-  const side = Math.floor(rand(0, 4));
-  if (side === 0) return { x: rand(0, width), y: -20 };
-  if (side === 1) return { x: width + 20, y: rand(0, height) };
-  if (side === 2) return { x: rand(0, width), y: height + 20 };
+function leftEdgePoint(height: number): Vec {
   return { x: -20, y: rand(0, height) };
+}
+
+function rightEdgePoint(width: number, height: number): Vec {
+  return { x: width + 20, y: rand(0, height) };
 }
 
 function makeSeeding(width: number, height: number): Phase {
@@ -50,7 +50,7 @@ function makeSeeding(width: number, height: number): Phase {
     x: rand(width * 0.25, width * 0.75),
     y: rand(height * 0.25, height * 0.75),
   };
-  const seeds = [edgePoint(width, height), edgePoint(width, height)].map(
+  const seeds = [leftEdgePoint(height), rightEdgePoint(width, height)].map(
     (pos) => {
       const dx = target.x - pos.x;
       const dy = target.y - pos.y;
@@ -75,7 +75,7 @@ function burstAt(origin: Vec): Phase {
       vel: { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed },
       age: 0,
       life: rand(FRAGMENT_LIFE_MIN, FRAGMENT_LIFE_MAX),
-      size: rand(1, 2.4),
+      size: rand(4, 9.6),
     };
   });
   return { kind: "bursting", fragments, ringAge: 0, origin };
@@ -127,7 +127,7 @@ export default function ParticleCollision() {
         }
         for (const seed of phase.seeds) {
           ctx!.strokeStyle = "rgba(255,255,255,0.85)";
-          ctx!.lineWidth = 1.4;
+          ctx!.lineWidth = 5.6;
           ctx!.beginPath();
           ctx!.moveTo(seed.pos.x - seed.vel.x * 12, seed.pos.y - seed.vel.y * 12);
           ctx!.lineTo(seed.pos.x, seed.pos.y);
