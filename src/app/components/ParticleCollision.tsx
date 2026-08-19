@@ -33,6 +33,8 @@ const WALL_MAX_TILT = 1.15; // rad; how obliquely we see a dome out at the rim
 const WALL_MIN_FORESHORTEN = 0.3; // domes never squash flatter than this
 const WALL_LIGHT_DIR = { x: -0.55, y: -0.83 }; // scene light, up and to the left
 const WALL_FLAT_DOT_RADIUS = 1.1; // below this a gradient is invisible, so fill flat
+const WALL_LIT_TUBE_CHANCE = 0.05; // fraction of tubes glowing from the inside
+const WALL_SPRITE_SCALE = 3; // supersample the wall so the domes stay crisp
 const WALL_LIGHT_OFFSETS = [
   { dx: -0.16, dy: -0.05 },
   { dx: 0.03, dy: -0.11 },
@@ -77,6 +79,12 @@ type Phase =
 
 function rand(min: number, max: number) {
   return min + Math.random() * (max - min);
+}
+
+// stable pseudo-random in [0,1) so a tube looks the same every time it renders
+function hash01(a: number, b: number) {
+  const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453;
+  return s - Math.floor(s);
 }
 
 function generateWireSphereLines(): SphereLine[] {
@@ -152,6 +160,7 @@ function drawDetectorDome(
   foreshorten: number, // 1 = seen head-on, →0 = seen edge-on
   depthT: number,
   shade: number,
+  seed: number, // stable per-tube randomness in [0,1)
 ) {
   if (radius < WALL_FLAT_DOT_RADIUS) {
     ctx.fillStyle = `rgba(255,255,255,${shade * 0.75})`;
@@ -166,20 +175,85 @@ function drawDetectorDome(
   ctx.rotate(tilt); // local +x now points radially outward
   ctx.scale(foreshorten, 1); // squash along that radial axis
 
-  // the scene light, expressed in this dome's own rotated frame
-  const lx = WALL_LIGHT_DIR.x * Math.cos(tilt) + WALL_LIGHT_DIR.y * Math.sin(tilt);
+  // The scene light, expressed in this dome's own rotated frame. The dome's
+  // axis still points back at the viewer, so the whole lobe also drifts toward
+  // the vanishing point (local -x) the further out on the wall we are.
+  const lx =
+    WALL_LIGHT_DIR.x * Math.cos(tilt) + WALL_LIGHT_DIR.y * Math.sin(tilt) - depthT * 0.4;
   const ly = -WALL_LIGHT_DIR.x * Math.sin(tilt) + WALL_LIGHT_DIR.y * Math.cos(tilt);
-  const hx = (lx * 0.38 - depthT * 0.3) * radius;
-  const hy = ly * 0.38 * radius;
+  const len = Math.max(Math.hypot(lx, ly), 1e-4);
+  const ux = lx / len;
+  const uy = ly / len;
+  const lobe = Math.min(len, 1); // how far off-axis the highlight sits
 
-  const gradient = ctx.createRadialGradient(hx, hy, radius * 0.05, 0, 0, radius * 1.05);
-  gradient.addColorStop(0, `rgba(255,255,255,${shade})`);
-  gradient.addColorStop(0.45, `rgba(255,255,255,${shade * 0.5})`);
-  gradient.addColorStop(1, `rgba(255,255,255,${shade * 0.12})`);
-  ctx.fillStyle = gradient;
+  // Everything below is layered inside the dome's silhouette.
   ctx.beginPath();
   ctx.arc(0, 0, radius, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.save();
+  ctx.clip();
+
+  const box = radius * 2;
+
+  // 1. body — ambient term with limb darkening, so the glass falls off toward
+  // the silhouette instead of ending on a hard edge
+  const body = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+  body.addColorStop(0, `rgba(255,255,255,${shade * 0.34})`);
+  body.addColorStop(0.62, `rgba(255,255,255,${shade * 0.25})`);
+  body.addColorStop(0.88, `rgba(255,255,255,${shade * 0.12})`);
+  body.addColorStop(1, `rgba(255,255,255,${shade * 0.04})`);
+  ctx.fillStyle = body;
+  ctx.fillRect(-radius, -radius, box, box);
+
+  ctx.globalCompositeOperation = "lighter";
+
+  // 2. diffuse lobe — broad, centered where the surface normal meets the light
+  const dx = ux * radius * 0.5 * lobe;
+  const dy = uy * radius * 0.5 * lobe;
+  const diffuse = ctx.createRadialGradient(dx, dy, 0, dx, dy, radius * 1.45);
+  diffuse.addColorStop(0, `rgba(255,255,255,${shade * 0.5})`);
+  diffuse.addColorStop(0.45, `rgba(255,255,255,${shade * 0.2})`);
+  diffuse.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = diffuse;
+  ctx.fillRect(-radius, -radius, box, box);
+
+  // 3. specular hot spot — tight, and the thing that actually reads as "glass"
+  const sx = ux * radius * 0.6 * lobe;
+  const sy = uy * radius * 0.6 * lobe;
+  const spec = ctx.createRadialGradient(sx, sy, 0, sx, sy, radius * 0.34);
+  spec.addColorStop(0, `rgba(255,255,255,${Math.min(1, shade * 3.4)})`);
+  spec.addColorStop(0.35, `rgba(255,255,255,${shade * 0.7})`);
+  spec.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = spec;
+  ctx.fillRect(-radius, -radius, box, box);
+
+  // 4. fresnel rim on the shadow side — the grazing-angle catch that separates
+  // one tube from the next
+  const lightAngle = Math.atan2(uy, ux);
+  ctx.strokeStyle = `rgba(255,255,255,${shade * 0.45})`;
+  ctx.lineWidth = radius * 0.14;
+  ctx.beginPath();
+  ctx.arc(0, 0, radius * 0.93, lightAngle + 0.75, lightAngle + Math.PI * 2 - 0.75);
+  ctx.stroke();
+
+  // 5. a few tubes are live, glowing from the inside
+  if (seed < WALL_LIT_TUBE_CHANCE) {
+    const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, radius * 1.1);
+    glow.addColorStop(0, `rgba(255,255,255,${Math.min(1, shade * 4)})`);
+    glow.addColorStop(0.5, `rgba(255,255,255,${shade * 1.1})`);
+    glow.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(-radius, -radius, box, box);
+  }
+
+  ctx.restore(); // drop the clip and the additive blending
+
+  // 6. housing collar the tube is seated in
+  ctx.strokeStyle = `rgba(255,255,255,${shade * 0.4})`;
+  ctx.lineWidth = Math.max(0.4, radius * 0.08);
+  ctx.beginPath();
+  ctx.arc(0, 0, radius * 1.04, 0, Math.PI * 2);
+  ctx.stroke();
+
   ctx.restore();
 }
 
@@ -190,12 +264,13 @@ function drawDetectorDome(
 // The geometry only depends on the canvas size, so this renders once into an
 // offscreen sprite that each frame blits at the current opacity.
 function renderDetectorWall(width: number, height: number, dpr: number) {
+  const scale = Math.max(dpr, WALL_SPRITE_SCALE);
   const sprite = document.createElement("canvas");
-  sprite.width = Math.max(1, Math.round(width * dpr));
-  sprite.height = Math.max(1, Math.round(height * dpr));
+  sprite.width = Math.max(1, Math.round(width * scale));
+  sprite.height = Math.max(1, Math.round(height * scale));
   const ctx = sprite.getContext("2d");
   if (!ctx) return null;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
 
   const opacity = 1;
   const vp = { x: width * WALL_VP_X_RATIO, y: height * WALL_VP_Y_RATIO };
@@ -222,10 +297,23 @@ function renderDetectorWall(width: number, height: number, dpr: number) {
       const x = vp.x + radius * Math.cos(angle);
       const y = vp.y + radius * Math.sin(angle);
       if (x < -20 || x > width + 20 || y < -20 || y > height + 20) continue;
+      const seed = hash01(i, d);
       const shade =
         (0.16 + 0.18 * Math.abs(Math.sin(i * 12.9898 + d * 4.1414))) *
         (0.4 + 0.6 * depthT);
-      drawDetectorDome(ctx, x, y, dotRadius, angle, foreshorten, depthT, opacity * shade);
+      // no two tubes are quite the same size
+      const tubeRadius = dotRadius * (0.88 + 0.24 * hash01(d, i));
+      drawDetectorDome(
+        ctx,
+        x,
+        y,
+        tubeRadius,
+        angle,
+        foreshorten,
+        depthT,
+        opacity * shade,
+        seed,
+      );
     }
   }
 
@@ -374,6 +462,7 @@ export default function ParticleCollision() {
           if (wallSprite) {
             ctx!.save();
             ctx!.globalAlpha = wallOpacity;
+            ctx!.imageSmoothingQuality = "high"; // the sprite is supersampled
             ctx!.drawImage(wallSprite, 0, 0, width, height);
             ctx!.restore();
           }
