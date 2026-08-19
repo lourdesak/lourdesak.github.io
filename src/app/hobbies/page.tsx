@@ -9,18 +9,29 @@ const josefinSans = Josefin_Sans({
   style: ["italic"],
 });
 
-const MOSAIC_SIZE = 720;
+const MOSAIC_WIDTH = 840;
+const MOSAIC_HEIGHT = 567;
 
+// Gallery-wall arrangement of varied-size frames, modeled on a scattered
+// picture-frame layout: a mix of small, medium, and large tiles staggered
+// across the canvas rather than aligned to a strict grid.
 const MOSAIC_TILES = [
-  { x: 0, y: 0, w: 220, h: 354 },
-  { x: 0, y: 366, w: 220, h: 354 },
-  { x: 232, y: 0, w: 488, h: 171 },
-  { x: 232, y: 183, w: 488, h: 171 },
-  { x: 232, y: 366, w: 488, h: 171 },
-  { x: 232, y: 549, w: 488, h: 171 },
+  { x: 418, y: 12, w: 113, h: 109 },
+  { x: 546, y: 40, w: 91, h: 78 },
+  { x: 292, y: 96, w: 113, h: 124 },
+  { x: 103, y: 164, w: 174, h: 164 },
+  { x: 17, y: 246, w: 71, h: 82 },
+  { x: 290, y: 231, w: 183, h: 170 },
+  { x: 481, y: 126, w: 256, h: 233 },
+  { x: 754, y: 273, w: 73, h: 82 },
+  { x: 63, y: 344, w: 76, h: 82 },
+  { x: 155, y: 344, w: 122, h: 105 },
+  { x: 355, y: 409, w: 111, h: 122 },
+  { x: 479, y: 374, w: 118, h: 107 },
+  { x: 613, y: 380, w: 164, h: 162 },
 ];
 
-const MOSAIC_IMAGES: { src: string; alt: string }[][] = [[], [], [], [], [], []];
+const MOSAIC_IMAGES: { src: string; alt: string }[][] = MOSAIC_TILES.map(() => []);
 
 const HOBBIES = [
   { label: "Hobby 1" },
@@ -42,7 +53,7 @@ export default function HobbiesPage() {
           </h2>
           <div
             className="relative"
-            style={{ width: MOSAIC_SIZE, height: MOSAIC_SIZE }}
+            style={{ width: MOSAIC_WIDTH, height: MOSAIC_HEIGHT }}
           >
             {MOSAIC_TILES.map((tile, i) => (
               <div
