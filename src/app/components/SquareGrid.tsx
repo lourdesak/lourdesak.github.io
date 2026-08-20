@@ -2,6 +2,7 @@ type SquareItem = {
   label: string;
   description?: string;
   content?: React.ReactNode;
+  offsetTop?: number;
 };
 
 type SquareGridProps = {
@@ -25,8 +26,8 @@ export default function SquareGrid({
       {items.map((item) => (
         <div
           key={item.label}
-          className="group flex flex-col gap-3"
-          style={{ width: cardWidth }}
+          className="group relative flex flex-col gap-3"
+          style={{ width: cardWidth, top: item.offsetTop }}
         >
           <p className="origin-left mb-3 text-base font-medium text-white-800 transition-transform duration-300 ease-out group-hover:scale-110 dark:text-white-400">
             {item.label}
@@ -38,7 +39,7 @@ export default function SquareGrid({
             {item.content}
           </div>
           {item.description && (
-            <p className="line-clamp-2 h-10 text-sm leading-snug text-white transition-colors duration-300 group-hover:text-blue-400">
+            <p className="line-clamp-2 h-10 text-sm leading-snug text-white opacity-0 transition-all duration-300 ease-out group-hover:opacity-100 group-hover:text-blue-400">
               {item.description}
             </p>
           )}

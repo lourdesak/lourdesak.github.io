@@ -51,3 +51,14 @@ body {
     transform: translateX(-100%);
   }
 }
+
+@keyframes coding-marquee {
+  from {
+    transform: translateX(0%);
+  }
+  to {
+    /* the track holds two duplicated copies of the icon list, so -50%
+       is exactly one copy's width, making the loop seamless */
+    transform: translateX(-50%);
+  }
+}

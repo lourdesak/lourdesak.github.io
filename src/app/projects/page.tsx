@@ -16,7 +16,7 @@ const PROJECTS = [
   },
   {
     label: "Astroparticle Physics",
-    description: "Launched (in-house built) Cosmic Watches to heights of 80,000 ft in Dr. Christina Love's lab. Soldered, polished scintillatos and eventually presented findings at APS Mid-Atlantic.",
+    description: "Launched (in-house built) Cosmic Watches to heights of 80,000 ft in Dr. Christina Love's lab. Soldered, polished scintillators and eventually presented findings at APS Mid-Atlantic.",
     content: <ImageCarousel images={ASTRO_IMAGES} />,
   },
   {
@@ -32,14 +32,14 @@ const PROJECTS = [
 export default function ProjectsPage() {
   return (
     <PageShell title="Projects">
-      <div className="flex flex-col gap-4">
+      <div className="mt-6 flex flex-col gap-4">
         <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
           Research Projects
         </h2>
         <SquareGrid items={PROJECTS} cardWidth={600} cardHeight={300} columns={2} />
       </div>
 
-      <div className="mt-8 flex flex-col gap-4">
+      <div className="mt-6 flex flex-col gap-4">
         <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
           Featured Projects
         </h2>

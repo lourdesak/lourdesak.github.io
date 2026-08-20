@@ -1,0 +1,85 @@
+/*
+ * Motion only. Every pivot point is a geometry concern, so it is set inline
+ * from design.ts rather than duplicated here.
+ *
+ * A walk cycle, not a scissor: the thigh swings through contact and push-off
+ * while the knee flexes hardest as the foot leaves the ground, which is what
+ * stops the legs reading as two rigid sticks. The arms run against the legs,
+ * and the far limbs reuse the same keyframes half a cycle out of step.
+ */
+
+@keyframes thigh {
+  0%   { transform: rotate(17deg); }
+  15%  { transform: rotate(11deg); }
+  30%  { transform: rotate(1deg); }
+  50%  { transform: rotate(-15deg); }
+  65%  { transform: rotate(-6deg); }
+  80%  { transform: rotate(10deg); }
+  100% { transform: rotate(17deg); }
+}
+
+@keyframes shin {
+  0%   { transform: rotate(-2deg); }
+  20%  { transform: rotate(-8deg); }
+  40%  { transform: rotate(-3deg); }
+  55%  { transform: rotate(-30deg); }
+  70%  { transform: rotate(-44deg); }
+  85%  { transform: rotate(-16deg); }
+  100% { transform: rotate(-2deg); }
+}
+
+@keyframes arm {
+  0%   { transform: rotate(-20deg); }
+  30%  { transform: rotate(-4deg); }
+  50%  { transform: rotate(18deg); }
+  80%  { transform: rotate(1deg); }
+  100% { transform: rotate(-20deg); }
+}
+
+@keyframes forearm {
+  0%   { transform: rotate(4deg); }
+  50%  { transform: rotate(16deg); }
+  100% { transform: rotate(4deg); }
+}
+
+/* the body dips at each footfall, so twice per cycle */
+@keyframes bob {
+  0%, 50%, 100% { transform: translateY(0.9px); }
+  25%, 75%      { transform: translateY(-0.9px); }
+}
+
+/* the waves lag a beat behind the bounce */
+@keyframes sway {
+  0%, 100% { transform: rotate(2.4deg); }
+  50%      { transform: rotate(-2.4deg); }
+}
+
+@keyframes flash {
+  0%   { opacity: 0; transform: scale(0.4); }
+  25%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(2); }
+}
+
+.pivot {
+  transform-box: view-box;
+}
+
+.thigh   { animation: thigh var(--cadence) ease-in-out infinite; }
+.shin    { animation: shin var(--cadence) ease-in-out infinite; }
+.arm     { animation: arm var(--cadence) ease-in-out infinite; }
+.forearm { animation: forearm var(--cadence) ease-in-out infinite; }
+.bob     { animation: bob var(--cadence) ease-in-out infinite; }
+.sway    { animation: sway var(--cadence) ease-in-out infinite; }
+
+/* the far side of the body is half a stride behind the near side */
+.offbeat { animation-delay: calc(var(--cadence) / -2); }
+
+.flash {
+  transform-box: view-box;
+  animation: flash var(--flash-ms) ease-out forwards;
+}
+
+/* easing into and out of the shooting pose, which is not part of a cycle */
+.settle {
+  transition: transform 300ms ease-out;
+}

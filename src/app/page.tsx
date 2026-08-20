@@ -1,3 +1,4 @@
+import CodingIconsPopup from "./components/CodingIconsPopup";
 import HoverPhoto from "./components/HoverPhoto";
 import NameWave from "./components/NameWave";
 import ParticleCollision from "./components/ParticleCollision";
@@ -18,7 +19,7 @@ export default function Home() {
               width={636}
               height={800}
             >
-              <span className="text-sky-300">Tuticorin</span>
+              <span className="text-amber-400">Tuticorin</span>
             </HoverPhoto>{" "}
             with recent years spent in{" "}
             <HoverPhoto
@@ -28,7 +29,7 @@ export default function Home() {
               height={533}
               panelWidth="w-72"
             >
-              <span className="text-sky-300">Philadelphia</span>
+              <span className="text-[#004c54] dark:text-[#4d9da3]">Philadelphia</span>
             </HoverPhoto>{" "}
             and{" "}
             <HoverPhoto
@@ -38,11 +39,14 @@ export default function Home() {
               height={494}
               panelWidth="w-72"
             >
-              <span className="text-sky-300">Honolulu</span>
+              <span className="text-green-300">Honolulu</span>
             </HoverPhoto>
             . Reading is my shining hobby and passion, and I&apos;ve contributed
-            primarily as a researcher and a mentor across multiple projects. May it be coding, 
-            soldering or helping write grants, I try to be adaptable.
+            primarily as a researcher and a mentor across multiple projects. May it be{" "}
+            <CodingIconsPopup>
+              <span className="text-zinc-600 dark:text-zinc-400">coding</span>
+            </CodingIconsPopup>
+            , soldering or helping write grants, I try to be adaptable.
           </p>
         </div>
 
@@ -81,6 +85,16 @@ export default function Home() {
                 href="https://badgelist.com/u/lourdesakirtha"
               >
                 BadgeList
+              </a>
+            </li>
+            <li>
+              <a
+                className="underline underline-offset-4 hover:text-black dark:hover:text-white"
+                href="/Senior_Thesis.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Latest Paper
               </a>
             </li>
           </ul>

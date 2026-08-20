@@ -135,7 +135,7 @@ export default function NameWave({ name }: { name: string }) {
             strokeWidth={1.5}
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="text-zinc-400 dark:text-zinc-600"
+            className={hovered ? "text-[#8a7a00]" : "text-zinc-400 dark:text-zinc-600"}
           />
         </svg>
       )}

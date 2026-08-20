@@ -14,7 +14,7 @@ export default function PageShell({
           {title}
         </h1>
       </div>
-      {header && <div className="w-full px-6">{header}</div>}
+      {header && <div className="w-full px-6 mt-12">{header}</div>}
       <main className="flex w-full max-w-4xl flex-col gap-4 px-6">
         <div className="text-zinc-700 dark:text-zinc-300">
           {children ?? <p>Coming soon.</p>}
