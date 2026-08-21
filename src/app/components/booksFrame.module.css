@@ -1,0 +1,132 @@
+/*
+ * A mitred silver frame around the books panel: four trapezoids, one per side,
+ * meeting at 45° corners the way a picture frame is cut.
+ *
+ * It is the same material as the panes flanking the photo wall — both draw on
+ * --silver-face / --silver-tint from globals.css — so the two screens read as
+ * belonging to the same object rather than as two separate silver effects that
+ * happen to look similar.
+ *
+ * Four separate faces rather than one ring, because that is what makes it read
+ * as a bevel: each side is lit differently, as it would be under a single
+ * light. Top brightest, bottom darkest, the two sides in between. One
+ * continuous band cannot do that, and reads flat however good the gradient is.
+ */
+
+.frame {
+  --band: 26px;
+  position: relative;
+  padding: var(--band);
+  /* the outer rectangle: a bright hairline, a darker one under it, and a
+     shadow to lift the whole assembly off the page */
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.5),
+    0 0 0 2px rgba(120, 130, 145, 0.4),
+    0 18px 40px -18px rgba(0, 0, 0, 0.55);
+}
+
+.bevel {
+  position: absolute;
+  background-image: var(--silver-face);
+}
+
+/* Top and bottom taper inward along their length; left and right taper down
+   their height. Every mitre is 45°, since the inset equals the band width. */
+.top {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--band);
+  clip-path: polygon(0 0, 100% 0, calc(100% - var(--band)) 100%, var(--band) 100%);
+  background-size: 260% 100%;
+  animation: band-across 21s linear infinite;
+  filter: brightness(1.18);
+}
+
+.bottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--band);
+  clip-path: polygon(var(--band) 0, calc(100% - var(--band)) 0, 100% 100%, 0 100%);
+  background-size: 260% 100%;
+  animation: band-across 25s linear infinite reverse;
+  filter: brightness(0.74);
+}
+
+.left {
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--band);
+  clip-path: polygon(0 0, 100% var(--band), 100% calc(100% - var(--band)), 0 100%);
+  background-size: 100% 260%;
+  animation: band-down 19s linear infinite;
+  filter: brightness(0.92);
+}
+
+.right {
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--band);
+  clip-path: polygon(100% 0, 100% 100%, 0 calc(100% - var(--band)), 0 var(--band));
+  background-size: 100% 260%;
+  animation: band-down 23s linear infinite reverse;
+  filter: brightness(1.04);
+}
+
+/* The cool/warm wash, laid across the whole frame so all four faces shift
+   colour together. It sits below the panel, so only the band picks it up. */
+.frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--silver-tint);
+  mix-blend-mode: overlay;
+  animation: books-tint 15s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+/* Above the bevels and the tint, so the panel's own surface stays clean. */
+.inner {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+}
+
+@keyframes band-across {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 260% 50%;
+  }
+}
+
+@keyframes band-down {
+  0% {
+    background-position: 50% 0%;
+  }
+  100% {
+    background-position: 50% 260%;
+  }
+}
+
+@keyframes books-tint {
+  0% {
+    opacity: 0.3;
+    filter: hue-rotate(-8deg);
+  }
+  100% {
+    opacity: 0.75;
+    filter: hue-rotate(10deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bevel,
+  .frame::after {
+    animation: none;
+  }
+}

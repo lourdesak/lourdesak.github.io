@@ -1,0 +1,236 @@
+/*
+ * Two brushed-silver panes standing either side of the photo wall, four in all,
+ * each leaning in toward it.
+ *
+ * The metal itself is --silver-face / --silver-tint in globals.css, shared
+ * with the frame around the books panel.
+ *
+ * The metal look comes from layering rather than from one gradient: a broad
+ * body gradient for the form, a narrow bright band that travels along it as the
+ * highlight, and a slow drift of hue between cool steel and warm champagne. A
+ * single static gradient reads as grey plastic; it is the travelling band and
+ * the shifting tint that make it read as metal catching the light.
+ *
+ * The nesting is deliberate. `.slot` places the pane and sets how far back it
+ * sits, `.slide` flies it in from offstage, and `.pane` does the endless slow
+ * breathing. Slide and breathe both drive `transform`, so they cannot share an
+ * element — the second would simply replace the first.
+ */
+
+.slot {
+  position: absolute;
+  /* `top` is set per pane: shorter ones are centred, not top-hung */
+  pointer-events: none;
+  opacity: var(--depth);
+}
+
+/* The direction is chosen by class rather than by passing a keyframe name in
+   from JS: CSS Modules rewrites @keyframes names, so a name spelled out in a
+   component would no longer match the one in the compiled stylesheet. */
+.slide {
+  height: 100%;
+  animation-duration: var(--travel);
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  animation-delay: var(--delay);
+  animation-fill-mode: both;
+}
+
+.enterLeft {
+  animation-name: pane-enter-left;
+}
+
+.enterRight {
+  animation-name: pane-enter-right;
+}
+
+.pane {
+  position: relative;
+  height: 100%;
+  animation: pane-breathe var(--breathe) ease-in-out infinite;
+}
+
+/*
+ * Walls seen in perspective: both vertical edges upright and parallel, but the
+ * outer edge full height and the inner edge — the one toward the photographs —
+ * noticeably shorter, with straight top and bottom edges running between them.
+ * That convergence is the whole effect; it is how a flat surface reads as
+ * receding away from the viewer rather than facing them square on.
+ *
+ * The taper is given in pixels (see TAPER in the component) so every pane
+ * converges by the same proportion of its own height, and the set stays
+ * consistent with itself.
+ */
+.left {
+  clip-path: polygon(
+    0 0,
+    100% var(--taper),
+    100% calc(100% - var(--taper)),
+    0 100%
+  );
+}
+
+.right {
+  clip-path: polygon(
+    0 var(--taper),
+    100% 0,
+    100% 100%,
+    0 calc(100% - var(--taper))
+  );
+}
+
+/* A hairline down the upright edge, the one facing the wall. Machined metal
+   catches the light on its square edge; without it the pane reads as a soft
+   gradient rather than a cut sheet. */
+.edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.85) 18%,
+    rgba(255, 255, 255, 0.55) 55%,
+    rgba(255, 255, 255, 0.9) 82%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+.edgeLeft {
+  right: 0;
+}
+
+.edgeRight {
+  left: 0;
+}
+
+.face {
+  position: absolute;
+  inset: 0;
+  background-image: var(--silver-face);
+  background-size: 100% 260%;
+  animation: pane-sheen var(--sheen) linear infinite;
+}
+
+/* The travelling highlight, kept as its own layer so it can run at a different
+   speed from the body — which is what stops the whole pane looking like one
+   sliding texture. */
+.glint {
+  position: absolute;
+  inset: -20% -60%;
+  background: linear-gradient(
+    172deg,
+    transparent 42%,
+    rgba(255, 255, 255, 0.75) 49%,
+    rgba(255, 255, 255, 0.95) 51%,
+    transparent 58%
+  );
+  mix-blend-mode: screen;
+  animation: pane-glint var(--glint) ease-in-out infinite;
+}
+
+/* A cool/warm wash so the colour shifts as the pane moves, rather than the
+   metal staying one flat grey. */
+.tint {
+  position: absolute;
+  inset: 0;
+  background: var(--silver-tint);
+  mix-blend-mode: overlay;
+  animation: pane-tint var(--tint) ease-in-out infinite alternate;
+}
+
+/*
+ * The entrance. Each pane comes in from its own side of the screen, and the
+ * easing does the work: expo-out spends most of the duration on the last
+ * fraction of the distance, so a pane arrives quickly and then eases into
+ * place almost in slow motion. It also comes in tilted and slightly oversized,
+ * settling square — a flat slide would read as a UI panel rather than a heavy
+ * sheet of metal being set down.
+ */
+@keyframes pane-enter-left {
+  0% {
+    transform: translateX(calc(-50vw - 100%)) rotate(-3.5deg) scale(1.12);
+  }
+  100% {
+    transform: translateX(0) rotate(0deg) scale(1);
+  }
+}
+
+@keyframes pane-enter-right {
+  0% {
+    transform: translateX(calc(50vw + 100%)) rotate(3.5deg) scale(1.12);
+  }
+  100% {
+    transform: translateX(0) rotate(0deg) scale(1);
+  }
+}
+
+@keyframes pane-sheen {
+  0% {
+    background-position: 50% 0%;
+  }
+  100% {
+    background-position: 50% 260%;
+  }
+}
+
+@keyframes pane-glint {
+  0%,
+  100% {
+    transform: translateY(-70%);
+    opacity: 0;
+  }
+  35% {
+    opacity: 0.9;
+  }
+  50% {
+    transform: translateY(60%);
+    opacity: 0.55;
+  }
+  70% {
+    opacity: 0;
+  }
+}
+
+@keyframes pane-tint {
+  0% {
+    opacity: 0.35;
+    filter: hue-rotate(-8deg);
+  }
+  100% {
+    opacity: 0.8;
+    filter: hue-rotate(10deg);
+  }
+}
+
+/*
+ * A slow rise, so the panes are never quite still.
+ *
+ * Only along their own length — no skew, no stretch. Each pane runs at its own
+ * period, so anything that alters their shape leaves the four permanently out
+ * of square with one another, which reads as sloppy rather than alive. Sliding
+ * along a shared axis keeps every edge parallel at every instant.
+ */
+@keyframes pane-breathe {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 0.92;
+    transform: translateY(-14px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide,
+  .enterLeft,
+  .enterRight,
+  .pane,
+  .face,
+  .glint,
+  .tint {
+    animation: none;
+  }
+}

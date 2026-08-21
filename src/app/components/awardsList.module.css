@@ -1,0 +1,31 @@
+/*
+ * Each row arrives from the right, one after another.
+ *
+ * The easing carries the effect: expo-out covers most of the distance early
+ * and spends the rest of the duration easing the last stretch into place, so a
+ * row slows as it lands rather than gliding at a constant rate. The stagger is
+ * longer than the eye strictly needs, so the list reads as filling in one row
+ * at a time instead of arriving as a block.
+ */
+
+.row {
+  animation: award-in 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--delay);
+}
+
+@keyframes award-in {
+  from {
+    opacity: 0;
+    transform: translateX(46px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row {
+    animation: none;
+  }
+}

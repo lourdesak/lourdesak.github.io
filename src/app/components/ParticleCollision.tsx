@@ -4,6 +4,34 @@ import { useEffect, useRef } from "react";
 
 const SEED_SPEED = 0.22; // px/ms
 const SEED_RADIUS = 28;
+const SEED_SMALL_RADIUS = 17; // the one that arrives first and waits
+
+/**
+ * The first sphere's solo act, written as a little script rather than left to
+ * chance. Someone lost doesn't drift at random — they set off somewhere,
+ * stop, glance about, try another direction, glance again, then give up. The
+ * pauses are what sell it: motion and looking never overlap, so each move
+ * reads as a decision rather than a wander.
+ */
+type Beat =
+  | { kind: "move"; dx: number; dy: number; ms: number }
+  | { kind: "look"; ms: number }
+  | { kind: "pause"; ms: number };
+
+const SEARCH: Beat[] = [
+  { kind: "pause", ms: 300 }, // takes stock on arrival
+  { kind: "move", dx: -52, dy: 0, ms: 640 }, // sets off to the left
+  { kind: "pause", ms: 200 },
+  { kind: "look", ms: 940 }, // left, then right, then back to centre
+  { kind: "pause", ms: 260 },
+  { kind: "move", dx: 44, dy: -38, ms: 720 }, // changes its mind: up and right
+  { kind: "pause", ms: 200 },
+  { kind: "look", ms: 940 },
+  { kind: "pause", ms: 420 }, // gives up, and comes to rest
+];
+
+const LOOK_TURN = 0.85; // rad swept to each side when glancing about
+const IDLE_SPIN = 0.0006; // rad/ms, so it is never entirely lifeless
 // Pointer proximity charges up the approach. The boost is deliberately spent
 // on the run-in rather than the burst: the aftermath keeps roughly its usual
 // pacing, so a hard hit reads as livelier without blowing the sequence past
@@ -90,6 +118,12 @@ type Seed = Spinner & {
   target: Vec;
   arrived: boolean;
   lines: SphereLine[];
+  radius: number;
+  /** how far it has moved from its mark while searching */
+  drift: Vec;
+  /** the glance, kept apart from `angle` so a look reads as a turn of the head
+   *  rather than as the body's own slow rotation */
+  look: number;
 };
 
 type Fragment = Spinner & {
@@ -104,7 +138,22 @@ type Fragment = Spinner & {
 
 type Phase =
   | { kind: "waiting"; until: number }
-  | { kind: "seeding"; seeds: [Seed, Seed]; target: Vec }
+  /**
+   * The approach, in beats: the small one arrives alone and works through
+   * SEARCH — casting about as though looking for someone — and only once it
+   * has given up and come to rest does the second come in and strike it.
+   */
+  | {
+      kind: "seeding";
+      stage: "arrive" | "search" | "charge";
+      elapsed: number;
+      /** where it is in SEARCH, and the drift it held when that beat began */
+      beat: number;
+      beatFrom: Vec;
+      first: Seed;
+      second: Seed;
+      target: Vec;
+    }
   | {
       kind: "bursting";
       fragments: Fragment[];
@@ -506,18 +555,23 @@ function renderDetectorWall(geo: WallGeometry, dpr: number) {
 function makeSeeding(width: number, height: number): Phase {
   const y = rand(height * 0.3, height * 0.7);
   const target: Vec = { x: width / 2, y };
-  // the two spheres counter-rotate at unrelated rates and start at unrelated
-  // phases, so the pair never reads as one mirrored object
-  const leftSeed: Seed = {
-    pos: { x: -SEED_RADIUS - 10, y },
+
+  // The small one comes in first and waits, tumbling, on the mark. The two
+  // counter-rotate at unrelated rates and start at unrelated phases, so the
+  // pair never reads as one mirrored object.
+  const first: Seed = {
+    pos: { x: -SEED_SMALL_RADIUS - 10, y },
     vel: { x: SEED_SPEED, y: 0 },
     target,
     arrived: false,
     lines: generateWireSphereLines(),
-    spin: rand(SEED_SPIN_MIN, SEED_SPIN_MAX),
+    spin: IDLE_SPIN,
     angle: rand(0, Math.PI * 2),
+    radius: SEED_SMALL_RADIUS,
+    drift: { x: 0, y: 0 },
+    look: 0,
   };
-  const rightSeed: Seed = {
+  const second: Seed = {
     pos: { x: width + SEED_RADIUS + 10, y },
     vel: { x: -SEED_SPEED, y: 0 },
     target,
@@ -525,8 +579,21 @@ function makeSeeding(width: number, height: number): Phase {
     lines: generateWireSphereLines(),
     spin: -rand(SEED_SPIN_MIN, SEED_SPIN_MAX),
     angle: rand(0, Math.PI * 2),
+    radius: SEED_RADIUS,
+    drift: { x: 0, y: 0 },
+    look: 0,
   };
-  return { kind: "seeding", seeds: [leftSeed, rightSeed], target };
+
+  return {
+    kind: "seeding",
+    stage: "arrive",
+    elapsed: 0,
+    beat: 0,
+    beatFrom: { x: 0, y: 0 },
+    first,
+    second,
+    target,
+  };
 }
 
 // `energy` is the approach multiplier the seeds carried into the collision. It
@@ -640,34 +707,109 @@ export default function ParticleCollision() {
       if (phase.kind === "waiting") {
         if (now >= phase.until) phase = makeSeeding(width, height);
       } else if (phase.kind === "seeding") {
-        let allArrived = true;
-        for (const seed of phase.seeds) {
-          // a sphere driven harder also tumbles faster
-          seed.angle += seed.spin * dt * (0.5 + 0.5 * boost);
-          if (!seed.arrived) {
-            const prevDx = seed.target.x - seed.pos.x;
-            seed.pos.x += seed.vel.x * dt * boost;
-            const newDx = seed.target.x - seed.pos.x;
-            if (Math.sign(prevDx) !== Math.sign(newDx) || Math.abs(newDx) < 1) {
-              seed.pos.x = seed.target.x;
-              seed.arrived = true;
+        const { first, second } = phase;
+        phase.elapsed += dt;
+
+        // travel toward the mark, reporting whether it has got there yet
+        const advance = (seed: Seed) => {
+          if (seed.arrived) return true;
+          const before = seed.target.x - seed.pos.x;
+          seed.pos.x += seed.vel.x * dt * boost;
+          const after = seed.target.x - seed.pos.x;
+          if (Math.sign(before) !== Math.sign(after) || Math.abs(after) < 1) {
+            seed.pos.x = seed.target.x;
+            seed.arrived = true;
+          }
+          return seed.arrived;
+        };
+
+        if (phase.stage === "arrive") {
+          first.angle += first.spin * dt;
+          if (advance(first)) {
+            phase.stage = "search";
+            phase.elapsed = 0;
+            phase.beat = 0;
+            phase.beatFrom = { x: first.drift.x, y: first.drift.y };
+          }
+        } else if (phase.stage === "search") {
+          // a slow turn of the body underneath whatever the current beat does
+          first.angle += first.spin * dt;
+
+          const beat = SEARCH[phase.beat];
+          const t = Math.min(phase.elapsed / beat.ms, 1);
+
+          if (beat.kind === "move") {
+            // eased at both ends, so it sets off and arrives rather than
+            // sliding at a constant machine-like rate
+            const ease = t * t * (3 - 2 * t);
+            first.drift.x = phase.beatFrom.x + beat.dx * ease;
+            first.drift.y = phase.beatFrom.y + beat.dy * ease;
+            first.look = 0;
+          } else if (beat.kind === "look") {
+            // one full sweep: left, back through centre, right, and centre again
+            first.look = -Math.sin(t * Math.PI * 2) * LOOK_TURN;
+          } else {
+            first.look = 0;
+          }
+
+          if (phase.elapsed >= beat.ms) {
+            phase.elapsed = 0;
+            phase.beat += 1;
+            phase.beatFrom = { x: first.drift.x, y: first.drift.y };
+            if (phase.beat >= SEARCH.length) {
+              first.look = 0;
+              phase.stage = "charge";
+              // The search leaves it off its original line, so line the second
+              // one up with where it actually came to rest — otherwise the two
+              // pass at different heights and "contact" happens on the x axis
+              // alone, with a visible gap between them.
+              second.pos.y = first.target.y + first.drift.y;
             }
           }
-          if (!seed.arrived) allArrived = false;
+        } else {
+          // the second sphere runs in and strikes the one waiting on the mark
+          second.angle += second.spin * dt * (0.5 + 0.5 * boost);
+          const gap = second.radius + first.radius;
+          const contact = first.target.x + first.drift.x + gap;
+          const before = contact - second.pos.x;
+          second.pos.x += second.vel.x * dt * boost;
+          if (Math.sign(before) !== Math.sign(contact - second.pos.x)) {
+            second.pos.x = contact;
+            second.arrived = true;
+          }
         }
-        for (const seed of phase.seeds) {
+
+        // still running in, or standing on its mark with whatever wander it has
+        const firstX = first.arrived ? first.target.x + first.drift.x : first.pos.x;
+        const firstY = first.arrived ? first.target.y + first.drift.y : first.pos.y;
+        drawWireSphere(
+          ctx!,
+          firstX,
+          firstY,
+          first.radius,
+          0.9,
+          first.lines,
+          first.angle + first.look,
+        );
+        if (phase.stage === "charge") {
           drawWireSphere(
             ctx!,
-            seed.pos.x,
-            seed.pos.y,
-            SEED_RADIUS,
+            second.pos.x,
+            second.pos.y,
+            second.radius,
             0.9,
-            seed.lines,
-            seed.angle,
+            second.lines,
+            second.angle,
           );
         }
-        // whatever speed they were carrying at impact becomes the burst energy
-        if (allArrived) phase = burstAt(phase.target, boost);
+
+        // whatever speed it was carrying at impact becomes the burst energy
+        if (second.arrived) {
+          phase = burstAt(
+            { x: first.target.x + first.drift.x, y: first.target.y + first.drift.y },
+            boost,
+          );
+        }
       } else if (phase.kind === "bursting") {
         phase.age += dt;
         const ringT = Math.min(phase.age / RING_LIFE_MS, 1);

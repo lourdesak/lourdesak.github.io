@@ -8,12 +8,19 @@ export type MosaicTile = { x: number; y: number; w: number; h: number };
 // boxed in tightly enough that no length along 45° clears its neighbours —
 // tried in order, so the line only strays from the clean default when it
 // truly has to.
-const ANGLES_DEG = [45, 30, 60, 20, 70, 15, 75];
-const DIAG_LENGTHS = [22, 35, 50, 70, 95, 125, 160, 200]; // px reach tried at each angle
-const HORIZONTAL = 44; // shortest the flat segment is allowed to be
-const GAP = 8; // clearance kept past a frame the line has to route around
+// Steep angles matter more than they look: a frame ringed on all four sides by
+// ~16px gaps can only get out through the narrow corridor between two
+// neighbours, which needs a near-vertical climb before the flat run has
+// anywhere clear to go.
+const ANGLES_DEG = [45, 30, 60, 20, 70, 15, 75, 80, 85];
+const DIAG_LENGTHS = [22, 35, 50, 70, 95, 125, 160, 200, 240, 280]; // px reach tried at each angle
+const HORIZONTAL = 64; // shortest the flat segment is allowed to be — long
+// enough that the wording stands clear of the frame rather than crowding it
+const GAP = 18; // clearance kept past a frame the line or label routes around,
+// so wording that has to squeeze by a neighbour still stands clear of it
 const TEXT_HALF = 9; // half-height of the label/line's collision band
-const LABEL_GAP = 5; // breathing room between the line's end and the text
+const LABEL_CLEAR = 12; // air kept between the wording and any photo
+const LABEL_GAP = 8; // breathing room between the line's end and the text
 const FONT_SIZE = 12;
 const LETTER_SPACING = 0.4;
 const OFF_ANGLE_PENALTY = 20; // tie-breaker bias back toward the default 45°
@@ -45,34 +52,6 @@ type Leader = {
   endX: number;
   towardLeft: boolean;
 };
-
-function rectsOverlap(
-  ax0: number,
-  ay0: number,
-  ax1: number,
-  ay1: number,
-  bx0: number,
-  by0: number,
-  bx1: number,
-  by1: number
-) {
-  return ax0 < bx1 && ax1 > bx0 && ay0 < by1 && ay1 > by0;
-}
-
-// Does a horizontal run at y=segY, from x0 to x1, cross this frame? Padded
-// vertically so the label's own text height counts, not just the 1px line.
-function runCrossesTile(x0: number, x1: number, segY: number, tile: MosaicTile) {
-  return rectsOverlap(
-    x0,
-    segY - TEXT_HALF,
-    x1,
-    segY + TEXT_HALF,
-    tile.x,
-    tile.y,
-    tile.x + tile.w,
-    tile.y + tile.h
-  );
-}
 
 // Exact line-segment-vs-rectangle intersection (parametric clip), not a
 // bounding-box approximation. A bounding box only ever grows as a segment
@@ -113,43 +92,63 @@ function segCrossesTile(x0: number, y0: number, x1: number, y1: number, tile: Mo
   return lo <= hi;
 }
 
-// Extends the flat run outward, corner by corner, until both it and the
-// label sitting past its end clear every frame they'd otherwise cross —
-// routing past whichever frame is furthest out, then rechecking, so a chain
-// of neighbours (line or label alike) is cleared in one pass.
+// Where the flat run can stop, given it must reach the outside world without
+// touching anything.
 //
-// Returns null when a frame can't be cleared this way at all — which happens
-// when the corner itself sits inside another frame's span at this height, so
-// the run is embedded in it from the very first pixel. No amount of
-// extending helps then (the candidate stop point ends up back past the
-// corner, the wrong side of where it started): that corner has to be
-// rejected outright, not accepted with a short but still-overlapping run.
+// A horizontal line cannot step over a frame: if one sits between the knee and
+// the label, the run crosses it however long it is made. So rather than
+// extending outward to "get past" an obstruction, this looks outward from the
+// knee for the nearest thing in the way — a frame whose body straddles this
+// height, or the edge of the drawable area — and asks whether the run plus the
+// label fit in the clear space before it. If they don't, this knee is unusable
+// and the caller tries another angle, length or corner, which is what makes the
+// line route around a photo instead of over it.
 function computeEndX(
   kneeX: number,
   kneeY: number,
   sx: number,
   others: MosaicTile[],
-  labelReach: number
+  labelReach: number,
+  boundX: number
 ) {
-  let endX = kneeX + sx * HORIZONTAL;
-  for (let iter = 0; iter < 20; iter++) {
-    let extended = false;
-    // the label sits past endX, so the occupied span for collision purposes
-    // runs all the way out to the far edge of the label text
-    const labelEdge = endX + sx * labelReach;
-    const segX0 = sx > 0 ? kneeX : labelEdge;
-    const segX1 = sx > 0 ? labelEdge : kneeX;
-    for (const tile of others) {
-      if (!runCrossesTile(segX0, segX1, kneeY, tile)) continue;
-      const candidate =
-        sx > 0 ? tile.x + tile.w + GAP - labelReach : tile.x - GAP + labelReach;
-      const clearsIt = sx > 0 ? candidate > endX : candidate < endX;
-      if (!clearsIt) return null;
-      endX = candidate;
-      extended = true;
-    }
-    if (!extended) break;
+  let limit = boundX;
+
+  for (const tile of others) {
+    // only frames tall enough to foul the run at this height matter
+    if (kneeY + TEXT_HALF <= tile.y || kneeY - TEXT_HALF >= tile.y + tile.h) continue;
+
+    const near = sx > 0 ? tile.x : tile.x + tile.w;
+    const far = sx > 0 ? tile.x + tile.w : tile.x;
+    // already behind the knee, so the outward run never reaches it
+    if (sx > 0 ? far <= kneeX : far >= kneeX) continue;
+
+    const stop = near - sx * GAP;
+    if (sx > 0 ? stop < limit : stop > limit) limit = stop;
   }
+
+  const room = sx > 0 ? limit - kneeX : kneeX - limit;
+  if (room < HORIZONTAL + labelReach) return null;
+
+  // there is space, so keep the run at its shortest — the label sits close to
+  // the frame it belongs to rather than trailing off across the page
+  const endX = kneeX + sx * HORIZONTAL;
+
+  // Finally, check where the wording actually lands. The scan above only
+  // considers frames the run travels through, so one sitting just above, below
+  // or behind the label is never looked at — and that is exactly how a label
+  // ends up a hair away from a photo it never crossed. Reject the candidate and
+  // let the caller try another angle, length or corner.
+  const labelX0 = sx > 0 ? endX + LABEL_GAP : endX - labelReach;
+  const labelX1 = sx > 0 ? endX + labelReach : endX - LABEL_GAP;
+  const crowded = others.some(
+    (t) =>
+      labelX0 - LABEL_CLEAR < t.x + t.w &&
+      t.x < labelX1 + LABEL_CLEAR &&
+      kneeY - TEXT_HALF - LABEL_CLEAR < t.y + t.h &&
+      t.y < kneeY + TEXT_HALF + LABEL_CLEAR
+  );
+  if (crowded) return null;
+
   return endX;
 }
 
@@ -163,8 +162,12 @@ function computeRoute(
   sx: number,
   sy: number,
   others: MosaicTile[],
-  labelReach: number
+  labelReach: number,
+  bounds: { width: number; height: number }
 ) {
+  // how far out the label may go before it leaves the drawable area
+  const boundX = sx > 0 ? bounds.width + PAD - 4 : -PAD + 4;
+
   for (const angleDeg of ANGLES_DEG) {
     const rad = (angleDeg * Math.PI) / 180;
     const dirX = sx * Math.cos(rad);
@@ -172,11 +175,49 @@ function computeRoute(
     for (const d of DIAG_LENGTHS) {
       const kneeX = cornerX + dirX * d;
       const kneeY = cornerY + dirY * d;
+      // the label has height, so keep the knee off the top and bottom edges too
+      if (kneeY < -PAD + TEXT_HALF || kneeY > bounds.height + PAD - TEXT_HALF) continue;
       if (others.some((t) => segCrossesTile(cornerX, cornerY, kneeX, kneeY, t))) continue;
-      const endX = computeEndX(kneeX, kneeY, sx, others, labelReach);
+      const endX = computeEndX(kneeX, kneeY, sx, others, labelReach, boundX);
       if (endX === null) continue;
       return { kneeX, kneeY, endX, angleDeg, d };
     }
+  }
+  return null;
+}
+
+/**
+ * A dead-straight leader out of the right-hand edge: no slant, just a flat run
+ * to the label. Tried at a few heights down the edge, nearest the middle first,
+ * so it comes out of the side of the frame rather than clipping a corner.
+ * Returns null when nothing to the right is clear, in which case the caller
+ * keeps the routed line it already had.
+ */
+function horizontalRoute(
+  tile: MosaicTile,
+  others: MosaicTile[],
+  place: string,
+  precise: boolean,
+  bounds: { width: number; height: number }
+): Leader | null {
+  const labelReach = LABEL_GAP + textWidth(place, precise);
+  const boundX = bounds.width + PAD - 4;
+  const edgeX = tile.x + tile.w;
+
+  // Every pixel down the edge is worth trying, closest to the middle first. The
+  // way out can be a corridor barely wider than the label itself — a couple of
+  // sampled heights step straight over a gap like that and wrongly conclude the
+  // right-hand side is blocked.
+  const middle = tile.y + tile.h / 2;
+  const candidates: number[] = [];
+  for (let y = Math.round(tile.y + 6); y <= tile.y + tile.h - 6; y++) candidates.push(y);
+  candidates.sort((a, b) => Math.abs(a - middle) - Math.abs(b - middle));
+
+  for (const y of candidates) {
+    const endX = computeEndX(edgeX, y, 1, others, labelReach, boundX);
+    if (endX === null) continue;
+    // corner and knee coincide, so the whole leader draws as one flat line
+    return { cornerX: edgeX, cornerY: y, kneeX: edgeX, kneeY: y, endX, towardLeft: false };
   }
   return null;
 }
@@ -191,7 +232,8 @@ function computeLeader(
   tile: MosaicTile,
   others: MosaicTile[],
   place: string,
-  precise: boolean
+  precise: boolean,
+  bounds: { width: number; height: number }
 ): Leader | null {
   const labelReach = LABEL_GAP + textWidth(place, precise);
   let best: Leader | null = null;
@@ -203,7 +245,7 @@ function computeLeader(
       const sy = towardTop ? -1 : 1;
       const cornerX = towardLeft ? tile.x : tile.x + tile.w;
       const cornerY = towardTop ? tile.y : tile.y + tile.h;
-      const route = computeRoute(cornerX, cornerY, sx, sy, others, labelReach);
+      const route = computeRoute(cornerX, cornerY, sx, sy, others, labelReach, bounds);
       if (!route) continue;
       const { kneeX, kneeY, endX, angleDeg, d } = route;
       const cost = d + Math.abs(endX - kneeX) + (angleDeg === 45 ? 0 : OFF_ANGLE_PENALTY);
@@ -248,15 +290,44 @@ export default function MosaicLeaders({
     () => false
   );
 
-  const leaders = useMemo(
-    () =>
-      tiles.map((tile, i) => {
-        if (!places[i]) return null;
-        const others = tiles.filter((_, j) => j !== i);
-        return computeLeader(tile, others, places[i], mounted);
-      }),
-    [tiles, places, mounted]
-  );
+  const leaders = useMemo(() => {
+    const built = tiles.map((tile, i) => {
+      if (!places[i]) return null;
+      const others = tiles.filter((_, j) => j !== i);
+      return computeLeader(tile, others, places[i], mounted, { width, height });
+    });
+
+    // One frame usually ends up with a noticeably longer, more wandering line
+    // than the rest, which is the one that draws the eye. Straighten just that
+    // one: a flat run out of the right-hand edge, no slant at all, if the room
+    // is there. The others are already short and are left alone.
+    let longest = -1;
+    let longestLen = -Infinity;
+    built.forEach((leader, i) => {
+      if (!leader) return;
+      const len =
+        Math.hypot(leader.kneeX - leader.cornerX, leader.kneeY - leader.cornerY) +
+        Math.abs(leader.endX - leader.kneeX);
+      if (len > longestLen) {
+        longestLen = len;
+        longest = i;
+      }
+    });
+
+    if (longest >= 0) {
+      const others = tiles.filter((_, j) => j !== longest);
+      const straight = horizontalRoute(
+        tiles[longest],
+        others,
+        places[longest],
+        mounted,
+        { width, height }
+      );
+      if (straight) built[longest] = straight;
+    }
+
+    return built;
+  }, [tiles, places, mounted, width, height]);
 
   return (
     <svg
