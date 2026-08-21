@@ -9,7 +9,16 @@ function subscribeNoop() {
 // Top-left corner label for the books screen: slides in from the left once
 // the screen comes into view, holds for a couple of seconds, then slides out
 // to the right and off the page. Plays once — an announcement, not a loop.
-export default function BookRecommendationsLabel() {
+//
+// Set to match the Crossroads heading — same face, size, tracking and colour —
+// so the two screens are headed alike. `fontClassName` is passed in rather
+// than the font being loaded again here: calling next/font a second time with
+// the same options creates a second instance of it, rather than reusing one.
+export default function BookRecommendationsLabel({
+  fontClassName = "",
+}: {
+  fontClassName?: string;
+}) {
   const ref = useRef<HTMLParagraphElement>(null);
   const [play, setPlay] = useState(false);
 
@@ -24,29 +33,35 @@ export default function BookRecommendationsLabel() {
     const el = ref.current;
     if (!el) return;
 
+    // Watch the whole books screen rather than this label. The label is a few
+    // lines tall, so it clears any threshold while the screen is still mostly
+    // below the fold; the section is a full viewport, so requiring nearly all
+    // of it means the screen really has arrived before the banner runs.
+    const screen = el.closest("section") ?? el;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        if (entry.intersectionRatio >= 0.95) {
           setPlay(true);
           observer.disconnect();
         }
       },
-      { threshold: 0.3 }
+      { threshold: [0.95, 0.99, 1] }
     );
-    observer.observe(el);
+    observer.observe(screen);
     return () => observer.disconnect();
   }, [reducedMotion]);
 
   const className = reducedMotion
     ? "opacity-100"
     : play
-      ? "animate-[book-rec-banner_3s_ease-in-out_forwards]"
+      ? "animate-[book-rec-banner_4.2s_ease-in-out_forwards]"
       : "opacity-0";
 
   return (
     <p
       ref={ref}
-      className={`pointer-events-none absolute left-6 top-18 text-sm font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400 ${className}`}
+      className={`${fontClassName} pointer-events-none absolute left-6 top-36 text-3xl italic tracking-wide text-zinc-800 dark:text-zinc-100 ${className}`}
     >
       Book recommendations
     </p>

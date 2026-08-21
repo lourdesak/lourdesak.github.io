@@ -49,7 +49,10 @@ export default function MosaicGallery({
   const shown = expanded === null ? null : images[expanded]?.[0];
 
   return (
-    <div className="relative" style={{ width, height }}>
+    // z-10 so the leader lines/labels always paint above the flanking
+    // SidePanes, guaranteed by stacking order rather than incidentally by
+    // DOM order (SidePanes carries no z-index of its own).
+    <div className="relative z-10" style={{ width, height }}>
       {tiles.map((tile, i) => (
         <div
           key={i}

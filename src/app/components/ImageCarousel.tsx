@@ -14,14 +14,29 @@ export type CarouselImage = {
 };
 
 /**
- * The visible photo is a plain block image at full width with its height left
- * to the browser, so the frame ends up exactly as tall as the photo is. That
- * is what makes cropping impossible: nothing here asserts a height for the
- * photo to be fitted into, so there is no mismatch to crop away. Only the
- * outgoing image during a slide is stretched over the frame, and it is on
- * screen for a few hundred milliseconds behind the incoming one.
+ * Two ways of sitting in its container, because its two callers need opposite
+ * things.
+ *
+ * By default the photo is a plain block image at full width with its height
+ * left to the browser, so the frame ends up exactly as tall as the photo is.
+ * That is what makes cropping impossible on the mosaic wall: nothing asserts a
+ * height for the photo to be fitted into, so there is no mismatch to crop away.
+ *
+ * With `fill`, it instead fits itself inside a container that has its own
+ * fixed height — for a card in a grid, where every card must be the same
+ * height. It fits rather than covers: the whole photograph is always shown,
+ * and whatever the frame's shape leaves over is left as plain black bars.
+ * Covering the frame instead would fill it edge to edge, but only by cutting
+ * pieces off the photograph, and a partly-shown picture is worse than a
+ * letterboxed one.
  */
-export default function ImageCarousel({ images }: { images: CarouselImage[] }) {
+export default function ImageCarousel({
+  images,
+  fill = false,
+}: {
+  images: CarouselImage[];
+  fill?: boolean;
+}) {
   const [hovered, setHovered] = useState(false);
   const [tick, setTick] = useState(0);
   const [transitioning, setTransitioning] = useState(false);
@@ -40,7 +55,9 @@ export default function ImageCarousel({ images }: { images: CarouselImage[] }) {
   if (images.length === 0) {
     return (
       <div
-        className="aspect-[4/3] w-full bg-zinc-100 dark:bg-zinc-900"
+        className={`bg-zinc-100 dark:bg-zinc-900 ${
+          fill ? "absolute inset-0" : "aspect-[4/3] w-full"
+        }`}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       />
@@ -53,7 +70,7 @@ export default function ImageCarousel({ images }: { images: CarouselImage[] }) {
 
   return (
     <div
-      className="relative overflow-hidden"
+      className={`overflow-hidden ${fill ? "absolute inset-0 bg-black" : "relative"}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
@@ -63,7 +80,7 @@ export default function ImageCarousel({ images }: { images: CarouselImage[] }) {
           src={images[prev].src}
           alt=""
           draggable={false}
-          className="absolute inset-0 h-full w-full"
+          className={`absolute inset-0 h-full w-full ${fill ? "object-contain" : ""}`}
           style={{ animation: `slide-out-left ${TRANSITION_MS}ms ease-in-out forwards` }}
         />
       )}
@@ -74,7 +91,9 @@ export default function ImageCarousel({ images }: { images: CarouselImage[] }) {
         draggable={false}
         width={images[current].w}
         height={images[current].h}
-        className="block h-auto w-full"
+        className={
+          fill ? "absolute inset-0 h-full w-full object-contain" : "block h-auto w-full"
+        }
         style={
           transitioning
             ? { animation: `slide-in-left ${TRANSITION_MS}ms ease-in-out forwards` }

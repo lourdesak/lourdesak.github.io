@@ -1,5 +1,7 @@
 import PageShell from "../components/PageShell";
 import AwardsList, { type Award } from "../components/AwardsList";
+import GappedRule from "../components/GappedRule";
+import OysterIcon from "../components/OysterIcon";
 
 /**
  * Taken from the CV, in the same order.
@@ -100,6 +102,11 @@ export default function AwardsPage() {
           .
         </p>
         <AwardsList awards={AWARDS} />
+
+        {/* Closes the page off, as the same rule does on the hobbies page. */}
+        <GappedRule gap={52} className="mt-6">
+          <OysterIcon className="h-[34px] w-[42px]" />
+        </GappedRule>
       </div>
     </PageShell>
   );

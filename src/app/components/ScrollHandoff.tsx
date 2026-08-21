@@ -7,6 +7,10 @@ import { useEffect } from "react";
 // instead so its length is an actual, adjustable number.
 const GLIDE_MS = 1800;
 
+const IDLE_MS = 220; // how long the scroll must be still before anything moves
+const REACH_DOWN = 0.7; // how far short of the section it will still tidy up from
+const ALIGNED = 6; // px; closer than this and moving would just be fussing
+
 // Ease-in-out cubic: slow start, fast middle, slow finish — same curve
 // ScrollPastTitle uses, so every scripted scroll on the page feels the same.
 function ease(t: number) {
@@ -14,45 +18,38 @@ function ease(t: number) {
 }
 
 /**
- * Hands the reader off to the next screen once they are far enough through this
- * one. Scrolling past `at` of the way down `fromId` glides the page to
- * `toId`, so the next section arrives as its own screen rather than creeping
- * up underneath the current one.
+ * Settles the page onto a section once the reader has stopped scrolling.
  *
- * Only ever fires while scrolling down, and only when the target is still
- * below the fold — so scrolling back up to re-read never yanks the reader
- * forward again.
+ * It deliberately never interrupts a scroll in progress. Firing the moment a
+ * threshold is crossed fights the reader mid-gesture — the page is taken over
+ * while they are still moving, and however smooth the glide is, that reads as
+ * the scroll being cut off. So they scroll as far as they like, and only once
+ * the page has gone quiet does the section ease into place.
+ *
+ * It only ever settles forwards, and only from nearby. Once the reader has gone
+ * past the section — on their way to whatever follows it — they are left there:
+ * pulling them back up would mean they could never get past this screen without
+ * fighting it, which is precisely the sort of hijacking this is meant to avoid.
+ * Coming to rest well short of the section is likewise taken as deliberate.
  */
-export default function ScrollHandoff({
-  fromId,
-  toId,
-  at = 0.7,
-}: {
-  fromId: string;
-  toId: string;
-  at?: number;
-}) {
+export default function ScrollHandoff({ toId }: { toId: string }) {
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    let lastY = window.scrollY;
-    let busy = false;
+    let idle: ReturnType<typeof setTimeout>;
     let frame: number;
+    let busy = false;
 
-    function onScroll() {
-      const y = window.scrollY;
-      const goingDown = y > lastY;
-      lastY = y;
-      if (busy || !goingDown) return;
-
-      const from = document.getElementById(fromId);
+    function settle() {
+      if (busy) return;
       const to = document.getElementById(toId);
-      if (!from || !to) return;
+      if (!to) return;
 
-      const start = from.offsetTop;
-      const progress = (y - start) / Math.max(from.offsetHeight, 1);
-      // already at or past the target, so there is nothing to hand off to
-      if (progress < at || y >= to.offsetTop - 4) return;
+      // where the section's top sits relative to the top of the viewport;
+      // negative means the reader has already scrolled past it
+      const offset = to.getBoundingClientRect().top;
+      if (offset <= ALIGNED) return;
+      if (offset >= window.innerHeight * REACH_DOWN) return;
 
       busy = true;
       const startY = window.scrollY;
@@ -67,18 +64,23 @@ export default function ScrollHandoff({
           frame = requestAnimationFrame(step);
         } else {
           busy = false;
-          lastY = window.scrollY;
         }
       }
       frame = requestAnimationFrame(step);
     }
 
+    function onScroll() {
+      clearTimeout(idle);
+      idle = setTimeout(settle, IDLE_MS);
+    }
+
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", onScroll);
+      clearTimeout(idle);
       cancelAnimationFrame(frame);
     };
-  }, [fromId, toId, at]);
+  }, [toId]);
 
   return null;
 }

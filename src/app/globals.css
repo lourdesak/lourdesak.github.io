@@ -81,16 +81,24 @@ body {
   }
 }
 
+/*
+ * Slides in from the left, holds still, then leaves to the right.
+ *
+ * Timed against a 4.2s run: in by 0.5s, held until 3.5s, gone by 4.2s — so the
+ * still part lasts a full three seconds. The percentages and the duration have
+ * to be read together; changing one without the other silently changes how
+ * long it rests.
+ */
 @keyframes book-rec-banner {
   0% {
     transform: translateX(-120px);
     opacity: 0;
   }
-  13.3% {
+  12% {
     transform: translateX(0);
     opacity: 1;
   }
-  80% {
+  83.3% {
     transform: translateX(0);
     opacity: 1;
   }

@@ -179,7 +179,7 @@ export default function HobbiesPage() {
         id="reading"
         className="relative flex min-h-screen w-full items-center justify-center bg-zinc-50 px-6 py-16 dark:bg-black"
       >
-        <BookRecommendationsLabel />
+        <BookRecommendationsLabel fontClassName={playfairDisplay.className} />
         <BooksPanel books={BOOKS} />
       </section>
 
@@ -191,18 +191,17 @@ export default function HobbiesPage() {
             Other hobbies
           </p>
           <p className="text-center text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-            Also running, crocheting, table tennis, tennis and snorkelling.
+            Running, crocheting, table tennis, tennis and snorkelling.
           </p>
           {/* Last thing on the page: the rule closes the section off rather
               than introducing it, so it sits below the text. */}
-          <GappedRule gap={96} className="mt-3">
-            {/* large enough for the engraving to read; at icon size it is a smudge */}
-            <OysterIcon className="h-[68px] w-[84px]" />
+          <GappedRule gap={52} className="mt-3">
+            <OysterIcon className="h-[34px] w-[42px]" />
           </GappedRule>
         </div>
       </section>
 
-      <ScrollHandoff fromId="photography" toId="reading" at={0.7} />
+      <ScrollHandoff toId="reading" />
     </>
   );
 }

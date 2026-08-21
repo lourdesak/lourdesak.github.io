@@ -1,0 +1,66 @@
+/*
+ * Cards arrive one after another, and catch a sweep of light when pointed at.
+ *
+ * The sheen is the same brushed silver used by the panes on the hobbies page
+ * and the frame around the books — it is what ties this page to those, rather
+ * than each screen inventing its own idea of a highlight.
+ */
+
+.card {
+  animation: card-in 800ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--delay);
+}
+
+/* A band of light drawn across the card on hover. It starts off one edge and
+   crosses to the other, so the card reads as catching the light rather than
+   simply getting brighter. */
+.sheen {
+  position: absolute;
+  inset: -60% -70%;
+  background: linear-gradient(
+    105deg,
+    transparent 44%,
+    rgba(255, 255, 255, 0.5) 50%,
+    transparent 56%
+  );
+  opacity: 0;
+  transform: translateX(-35%);
+  transition:
+    opacity 260ms ease-out,
+    transform 1100ms cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.card:hover .sheen {
+  opacity: 1;
+  transform: translateX(35%);
+}
+
+/* The quiet backdrop for a card with no photographs of its own: the same
+   silver, held right down, so an empty card still belongs to the set. */
+.blank {
+  background-image: var(--silver-face);
+  background-size: 100% 240%;
+  opacity: 0.09;
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(26px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+  }
+
+  .sheen {
+    display: none;
+  }
+}

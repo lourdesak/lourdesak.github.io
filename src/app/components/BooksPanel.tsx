@@ -203,7 +203,7 @@ export default function BooksPanel({ books }: { books: Book[] }) {
                   {book.title}
                 </h3>
                 <p className="text-base text-zinc-500 dark:text-zinc-400">{book.author}</p>
-                <span className="mt-2 inline-flex w-fit items-center rounded-full border border-zinc-300 px-2.5 py-1 text-xs font-medium uppercase tracking-wide text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
+                <span className="mt-2 inline-flex w-fit items-center rounded-full border border-[#8a7a00] px-2.5 py-1 text-xs font-medium uppercase tracking-wide text-zinc-600 dark:text-zinc-300">
                   {book.field}
                 </span>
               </div>
