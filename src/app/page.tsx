@@ -1,15 +1,19 @@
 import CodingIconsPopup from "./components/CodingIconsPopup";
 import HoverPhoto from "./components/HoverPhoto";
+import JourneyMap from "./components/JourneyMap";
 import NameWave from "./components/NameWave";
 import ParticleCollision from "./components/ParticleCollision";
 
 export default function Home() {
   return (
-    <div className="relative flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
+    <div className="relative flex flex-col flex-1 items-center justify-center overflow-x-clip bg-zinc-50 font-sans dark:bg-black">
       <ParticleCollision />
       <main className="relative z-10 flex w-full max-w-2xl flex-col gap-8 px-6 py-24">
-        <div className="flex flex-col gap-4">
-          <NameWave name="Lourdes Akirtha" />
+        <div className="relative flex flex-col gap-4">
+          <div className="flex items-start gap-1">
+            <NameWave name="Lourdes Akirtha" />
+            <JourneyMap />
+          </div>
           <p className="text-lg text-zinc-600 dark:text-zinc-400">
             22-year-old physics PhD student at the University of Hawaiʻi at
             Mānoa. My roots trace back to a coastal city in India called{" "}

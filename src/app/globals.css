@@ -117,6 +117,44 @@ body {
   }
 }
 
+/*
+ * The migration route on the home page. The dash length is fed in as
+ * --journey-len (the path's own getTotalLength), so the line draws itself on
+ * from pin to birthplace. Keyframed rather than transitioned because the
+ * trigger swaps other inline styles on the same element in the same frame.
+ */
+@keyframes journey-draw {
+  from {
+    stroke-dashoffset: var(--journey-len);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/*
+ * The location mark dropping into place when the journey is opened. Origin is
+ * the tip (set on the element as transform-box: fill-box; transform-origin:
+ * bottom), so it lands on its point and gives a small squash on impact.
+ */
+@keyframes journey-pin-drop {
+  0% {
+    transform: translateY(-8px) scale(0.86);
+    opacity: 0;
+  }
+  55% {
+    transform: translateY(1px) scale(1.05);
+    opacity: 1;
+  }
+  72% {
+    transform: translateY(0) scale(1.03, 0.95);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
 @keyframes coding-marquee {
   from {
     transform: translateX(0%);
