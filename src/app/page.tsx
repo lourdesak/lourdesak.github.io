@@ -11,7 +11,7 @@ export default function Home() {
       <ParticleCollision />
       {/* mirrors the nav pill on the opposite corner; z-50 clears the nav's
           top mask bar */}
-      <ThemeToggle className="fixed right-6 top-6 z-50" />
+      <ThemeToggle className="fixed right-6 top-6 z-50 max-sm:right-3" />
       <main className="relative z-10 flex w-full max-w-2xl flex-col gap-8 px-6 py-24">
         <div className="relative flex flex-col gap-4">
           <div className="flex items-start gap-1">
@@ -109,7 +109,9 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="absolute bottom-3 right-4 z-10 max-w-[90vw] text-right text-[10px] leading-relaxed text-zinc-400 dark:text-zinc-600">
+      {/* Corner credit on desktop. On phones it joins the normal flow at the
+          very bottom so it can't overlap the bio or sit under Safari's UI. */}
+      <footer className="absolute bottom-3 right-4 z-10 max-w-[90vw] text-right text-[10px] leading-relaxed text-zinc-400 max-sm:static max-sm:mx-auto max-sm:mb-8 max-sm:mt-16 max-sm:px-6 max-sm:text-center dark:text-zinc-600">
         <p>Tuticorin &mdash; visualsbysaud &middot; tntourismoffcl</p>
         <p>Philadelphia &mdash; Guide to Philly</p>
         <p>Honolulu &mdash; TripSavvy, part of the People Inc. publishing family</p>

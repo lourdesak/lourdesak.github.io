@@ -97,7 +97,7 @@ export default function AwardsPage() {
   return (
     <PageShell title="Awards">
       <div className="flex w-full flex-col gap-8 pb-24">
-        <p className="mt-6 whitespace-nowrap text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+        <p className="mt-6 max-w-full text-pretty text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
           Research funding and honours, {AWARDS.length} in all — including{" "}
           <span className="tabular-nums text-[#8a7a00]">{cash(research)}</span>{" "}
           in awarded research support

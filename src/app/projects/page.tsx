@@ -88,7 +88,7 @@ const FEATURED: Project[] = [
 const RESEARCH: Project[] = [
   {
     label: "Data Acquisition for Moore Foundation",
-    tag: "Physics Education Research",
+    tag: "Physics Education",
     duration: "3 months",
     description:
       "Collected physics faculty data from the web, contributing to a Moore Foundation project.",

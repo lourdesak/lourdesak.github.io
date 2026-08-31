@@ -130,7 +130,7 @@ export default function JourneyMap() {
           screens so it can't run off the edge. */}
       <div
         aria-hidden="true"
-        className={`absolute bottom-[calc(100%-22px)] left-[calc(100%+8px)] z-30 max-h-[calc(100vh-4.5rem)] w-[196px] origin-bottom-left overflow-y-auto overflow-x-hidden rounded-xl border border-zinc-200 bg-white/95 shadow-xl backdrop-blur-sm transition duration-200 ease-out max-sm:left-auto max-sm:right-0 max-sm:origin-bottom-right dark:border-zinc-800 dark:bg-zinc-900/95 ${
+        className={`absolute bottom-[calc(100%-22px)] left-[calc(100%+8px)] z-30 max-h-[calc(100vh-4.5rem)] w-[196px] origin-bottom-left overflow-y-auto overflow-x-hidden rounded-xl border border-zinc-200 bg-white/95 shadow-xl backdrop-blur-sm transition duration-200 ease-out max-sm:fixed max-sm:inset-x-0 max-sm:bottom-auto max-sm:left-0 max-sm:right-0 max-sm:top-[88px] max-sm:mx-auto max-sm:w-[min(15rem,calc(100vw-2rem))] max-sm:origin-top dark:border-zinc-800 dark:bg-zinc-900/95 ${
           open
             ? "scale-100 opacity-100"
             : "pointer-events-none scale-95 opacity-0"

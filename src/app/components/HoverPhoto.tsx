@@ -43,10 +43,13 @@ export default function HoverPhoto({
 
       <span
         aria-hidden={!open}
-        className={`pointer-events-none absolute bottom-full left-1/2 z-30 mb-3 block ${panelWidth} origin-bottom transition duration-300 ease-out ${
+        // Desktop: floats just above the word. On phones (< md) the word can
+        // sit anywhere on the line and a word-anchored panel runs off the
+        // edge, so it becomes a fixed, viewport-centred card instead.
+        className={`pointer-events-none absolute bottom-full left-1/2 z-30 mb-3 block ${panelWidth} max-w-[calc(100vw-1rem)] origin-bottom transition duration-300 ease-out max-md:fixed max-md:inset-x-0 max-md:bottom-auto max-md:top-1/2 max-md:z-50 max-md:mx-auto max-md:mb-0 max-md:w-[min(18rem,calc(100vw-2.5rem))] ${
           open
-            ? "-translate-x-1/2 translate-y-0 rotate-[-2deg] scale-100 opacity-100"
-            : "-translate-x-1/2 translate-y-3 rotate-0 scale-95 opacity-0"
+            ? "-translate-x-1/2 translate-y-0 rotate-[-2deg] scale-100 opacity-100 max-md:translate-x-0 max-md:-translate-y-1/2 max-md:rotate-0"
+            : "-translate-x-1/2 translate-y-3 rotate-0 scale-95 opacity-0 max-md:translate-x-0 max-md:-translate-y-1/2"
         }`}
       >
         <span className="relative block overflow-hidden rounded-lg shadow-2xl ring-1 ring-black/10 dark:ring-white/15">
