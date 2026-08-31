@@ -25,6 +25,12 @@ export type Book = {
   description: string;
   /** path under /public to the cover art; falls back to a plain slab without one */
   cover?: string;
+  /**
+   * `object-position` for the cover, for the odd scan whose title runs to the
+   * very edge and would lose its top to the default centre crop. Defaults to
+   * centre.
+   */
+  coverPosition?: string;
 };
 
 function ChevronIcon({ direction }: { direction: "left" | "right" }) {
@@ -45,7 +51,17 @@ function ChevronIcon({ direction }: { direction: "left" | "right" }) {
 // spine edge and the title set into it, standing in until real art is found.
 // `spin` remounts the element (a fresh key from the caller) so the one-time
 // spin keyframe plays again each time it changes, rather than looping.
-function BookCover({ title, cover, spin }: { title: string; cover?: string; spin: boolean }) {
+function BookCover({
+  title,
+  cover,
+  coverPosition,
+  spin,
+}: {
+  title: string;
+  cover?: string;
+  coverPosition?: string;
+  spin: boolean;
+}) {
   const spinClass = spin ? "animate-[spin-once_700ms_ease-in-out]" : "";
 
   if (cover) {
@@ -53,6 +69,7 @@ function BookCover({ title, cover, spin }: { title: string; cover?: string; spin
       <img
         src={cover}
         alt={`${title} cover`}
+        style={coverPosition ? { objectPosition: coverPosition } : undefined}
         className={`h-72 w-52 flex-none rounded-md border border-zinc-300/70 object-cover shadow-lg dark:border-zinc-700/60 ${spinClass}`}
       />
     );
@@ -191,7 +208,12 @@ export default function BooksPanel({ books }: { books: Book[] }) {
             className="flex flex-1 animate-[fade-in_400ms_ease-out] items-center gap-10"
             style={{ perspective: 1000 }}
           >
-            <BookCover title={book.title} cover={book.cover} spin={spun || reducedMotion} />
+            <BookCover
+              title={book.title}
+              cover={book.cover}
+              coverPosition={book.coverPosition}
+              spin={spun || reducedMotion}
+            />
             <div className="flex flex-col gap-4">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">

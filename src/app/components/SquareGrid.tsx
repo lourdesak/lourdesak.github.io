@@ -29,7 +29,7 @@ export default function SquareGrid({
           className="group relative flex flex-col gap-3"
           style={{ width: cardWidth, top: item.offsetTop }}
         >
-          <p className="origin-left mb-3 text-base font-medium text-white-800 transition-transform duration-300 ease-out group-hover:scale-110 dark:text-white-400">
+          <p className="origin-left mb-3 text-base font-medium text-zinc-800 transition-transform duration-300 ease-out group-hover:scale-110 dark:text-zinc-200">
             {item.label}
           </p>
           <div
@@ -39,7 +39,7 @@ export default function SquareGrid({
             {item.content}
           </div>
           {item.description && (
-            <p className="line-clamp-2 h-10 text-sm leading-snug text-white opacity-0 transition-all duration-300 ease-out group-hover:opacity-100 group-hover:text-blue-400">
+            <p className="line-clamp-2 h-10 text-sm leading-snug text-zinc-600 opacity-0 transition-all duration-300 ease-out group-hover:opacity-100 group-hover:text-blue-500 dark:text-zinc-300 dark:group-hover:text-blue-400">
               {item.description}
             </p>
           )}

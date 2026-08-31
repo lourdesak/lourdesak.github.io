@@ -1,6 +1,6 @@
 import { Playfair_Display } from "next/font/google";
 import PageShell from "../components/PageShell";
-import ImageCarousel from "../components/ImageCarousel";
+import SimulationDetail from "../components/SimulationDetail";
 import ProjectCard, { type Project } from "../components/ProjectCard";
 import GappedRule from "../components/GappedRule";
 import OysterIcon from "../components/OysterIcon";
@@ -18,33 +18,85 @@ const ASTRO_IMAGES = [
   { src: "/astro/DCBwithallsensors.jpg", alt: "Detector control board with all sensors" },
 ];
 
+const NEUTRINO_MEDIA = [
+  {
+    type: "video" as const,
+    src: "/neutrino/simulation.mp4",
+    poster: "/neutrino/simulation-poster.jpg",
+    alt: "Geant4 simulation of a stopping-muon detector",
+    w: 1280,
+    h: 530,
+  },
+];
+
 const FEATURED: Project[] = [
   {
     label: "Stopping-Muon Detector Simulation",
     tag: "Neutrino Physics",
+    duration: "2 years 4 months",
     description:
       "Developed a Geant4 simulation of a stopping-muon (SM) detector. Designed an algorithm to identify SMs and analysed data for a specific initial detector configuration.",
+    // Clicking the media opens the three-section detail pop-up.
+    content: (
+      <SimulationDetail
+        media={NEUTRINO_MEDIA}
+        title="Stopping-Muon Detector Simulation"
+        tag="Neutrino Physics"
+        sections={[
+          {
+            heading: "DUNE",
+            poster: {
+              src: "/posters/dune.jpg",
+              alt: "Conference poster: Neutrino Physics with the Deep Underground Neutrino Experiment",
+            },
+          },
+          { heading: "Muon Monitors" },
+          { heading: "Geant-4 Simulation" },
+        ]}
+      />
+    ),
+  },
+  {
+    label: "Cosmic Watches at ~90,000 Feet",
+    tag: "Astroparticle Physics",
+    // Sep. 2024 – Jun. 2025, inclusive
+    duration: "10 months",
+    description:
+      "Launched in-house built Cosmic Watches to heights of ~90,000 ft in Dr. Christina Love's lab. Soldered and polished scintillators, and presented findings at APS Mid-Atlantic.",
+    // Clicking the media opens the three-section detail pop-up.
+    content: (
+      <SimulationDetail
+        media={ASTRO_IMAGES}
+        title="Cosmic Watches at ~90,000 Feet"
+        tag="Astroparticle Physics"
+        sections={[
+          {
+            heading: "Mentoring",
+            poster: {
+              src: "/posters/cosmic-watches.jpg",
+              alt: "Conference poster: Cosmic Ray Detection with High-Altitude Balloon Launches",
+            },
+          },
+          { heading: "Software" },
+          { heading: "Hardware" },
+        ]}
+      />
+    ),
   },
 ];
 
 const RESEARCH: Project[] = [
   {
-    label: "Cosmic Watches at 80,000 Feet",
-    tag: "Astroparticle Physics",
-    description:
-      "Launched in-house built Cosmic Watches to heights of 80,000 ft in Dr. Christina Love's lab. Soldered and polished scintillators, and presented findings at APS Mid-Atlantic.",
-    // `fill` because the card gives the media a fixed height to sit in
-    content: <ImageCarousel images={ASTRO_IMAGES} fill />,
-  },
-  {
-    label: "Faculty Data for the Moore Foundation",
+    label: "Data Acquisition for Moore Foundation",
     tag: "Physics Education Research",
+    duration: "3 months",
     description:
       "Collected physics faculty data from the web, contributing to a Moore Foundation project.",
   },
   {
     label: "Enron Corpus and Model Lineage",
     tag: "Data Science",
+    duration: "3 months",
     description:
       "Collected Enron data to study the lineage of general-purpose AI systems.",
   },

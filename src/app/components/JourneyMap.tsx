@@ -1,134 +1,105 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-} from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import NamePin from "./NamePin";
 
 /**
- * The map pin beside the name is a button now. Pressing it unrolls a
- * hand-plotted migration route: the line leaves the pin, sweeps out to the
- * right, then coils back around the paragraph below. Every stop is somewhere
- * Lourdes has lived, walked newest-first back to her birthplace. The run of
- * line *leaving* a stop is scaled to how long she stayed there — one month in
- * Honolulu barely registers, eleven years in Tirunelveli draws the long tail.
+ * The location mark beside the name opens a small panel — a transit-map style
+ * timeline of every place Lourdes has lived, newest at the top, walked back to
+ * her birthplace at the bottom. Each stop's `years` is how long she stayed
+ * before leaving, and it sets the drop to the next stop: one month in Honolulu
+ * barely registers, eleven years in Tirunelveli draws the long fall.
  *
- *   22 years old.  Philadelphia 4 + Sivakasi 1 + Bangalore 5 + Sivakasi 1 = 11.
+ * Straight rail, one column of ticks, one column of labels — the two never
+ * cross, so nothing overlaps. On open the rail draws itself top-down and the
+ * stations light up in order behind it.
+ *
+ *   22 years old. Philadelphia 4 + Sivakasi 1 + Bangalore 5 + Sivakasi 1 = 11.
  *   Honolulu is ~1 month so far. Tuticorin is the point she was born at.
  *   22 - 11 - ~0 (Honolulu) => ~11 years in Tirunelveli before that.
  */
 
-type Stop = {
-  name: string;
-  note: string;
-  // years lived here; drives the length of the leg leaving this stop
-  years: number;
-};
+type Stop = { name: string; note: string; years: number };
 
-// newest first — the route is walked backwards in time from where she is now
 const STOPS: Stop[] = [
-  { name: "Honolulu", note: "now · ~1 mo", years: 1 / 12 },
-  { name: "Philadelphia", note: "4 years", years: 4 },
-  { name: "Sivakasi", note: "1 year", years: 1 },
-  { name: "Bangalore", note: "5 years", years: 5 },
-  { name: "Sivakasi", note: "1 year", years: 1 },
-  { name: "Tirunelveli", note: "11 years", years: 11 },
-  { name: "Tuticorin", note: "born here", years: 0 },
+  // Honolulu's note is filled in at render time from HONOLULU_ARRIVAL below.
+  { name: "Honolulu", note: "", years: 1 / 12 },
+  { name: "Philadelphia", note: "4 yrs", years: 4 },
+  { name: "Sivakasi", note: "1 yr", years: 1 },
+  { name: "Bangalore", note: "5 yrs", years: 5 },
+  { name: "Sivakasi", note: "1 yr", years: 1 },
+  { name: "Tirunelveli", note: "11 yrs", years: 11 },
+  { name: "Tuticorin", note: "born", years: 0 },
 ];
 
-const DRAW_MS = 1800;
-const MIN_LEG = 0.14; // smallest share of the route any one leg may take
-const PAD_R = 120; // room the coil is allowed past the text column, right…
-const PAD_B = 60; // …and below it, so the line wraps around the writing
+// The day Lourdes landed in Honolulu. The "how long so far" note counts up from
+// this on its own — Aug 5 -> Sep 5 reads as one month — so nothing needs hand-
+// editing as the tenure grows. (Month is 0-based: 7 = August.)
+const HONOLULU_ARRIVAL = new Date(2026, 7, 5);
 
-// a smooth open spline through the guide points (Catmull-Rom -> cubic Béziers)
-function catmullRom(pts: [number, number][]) {
-  if (pts.length < 2) return "";
-  let d = `M ${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
-  for (let i = 0; i < pts.length - 1; i++) {
-    const p0 = pts[i - 1] ?? pts[i];
-    const p1 = pts[i];
-    const p2 = pts[i + 1];
-    const p3 = pts[i + 2] ?? p2;
-    const c1x = p1[0] + (p2[0] - p0[0]) / 6;
-    const c1y = p1[1] + (p2[1] - p0[1]) / 6;
-    const c2x = p2[0] - (p3[0] - p1[0]) / 6;
-    const c2y = p2[1] - (p3[1] - p1[1]) / 6;
-    d +=
-      ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)},` +
-      ` ${c2x.toFixed(1)} ${c2y.toFixed(1)},` +
-      ` ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
+// Rough elapsed time as a terse note: "~3 wks", "~1 mo", "5 mos", "1 yr",
+// "1 yr 4 mos". Deliberately approximate — it only has to read right at a
+// glance in a 10px label.
+function tenureSince(from: Date, to: Date): string {
+  const days = Math.max(0, (to.getTime() - from.getTime()) / 86_400_000);
+
+  if (days < 25) {
+    const wks = Math.max(1, Math.round(days / 7));
+    return `~${wks} wk${wks === 1 ? "" : "s"}`;
   }
-  return d;
+
+  const months = Math.max(1, Math.round(days / 30.44));
+  if (months < 12) return `${months === 1 ? "~1" : months} mo${months === 1 ? "" : "s"}`;
+
+  const yrs = Math.floor(months / 12);
+  const rem = months % 12;
+  const y = `${yrs} yr${yrs === 1 ? "" : "s"}`;
+  return rem === 0 ? y : `${y} ${rem} mo${rem === 1 ? "" : "s"}`;
 }
 
-// cumulative 0..1 position of each stop along the route. Legs are floored so
-// the first two stops don't land on top of each other, then renormalised to 1.
-function stopFractions() {
-  const legs = STOPS.slice(0, -1).map((s) => s.years);
-  const total = legs.reduce((a, b) => a + b, 0);
-  const floored = legs.map((y) => Math.max(y / total, MIN_LEG));
-  const sum = floored.reduce((a, b) => a + b, 0);
-  const out = [0];
-  let acc = 0;
-  for (const f of floored) {
-    acc += f / sum;
-    out.push(acc);
-  }
-  out[out.length - 1] = 1;
-  return out;
-}
+// px added above each stop after the first — a sqrt keeps the eleven-year leg
+// from dwarfing the rest, and the small floor stops labels from touching.
+// Kept tight so the whole card fits the clear space up-right of the mark.
+const GAPS = (() => {
+  const weights = STOPS.slice(0, -1).map((s) => Math.sqrt(s.years + 0.3));
+  const max = Math.max(...weights);
+  return weights.map((v) => 1 + Math.round(6 * (v / max)));
+})();
 
-type Mark = { x: number; y: number; f: number; lx: number; ly: number; anchor: "start" | "middle" | "end" };
+const RM_QUERY = "(prefers-reduced-motion: reduce)";
+const subscribeRM = (cb: () => void) => {
+  const m = window.matchMedia(RM_QUERY);
+  m.addEventListener("change", cb);
+  return () => m.removeEventListener("change", cb);
+};
 
 export default function JourneyMap() {
   const [open, setOpen] = useState(false);
-  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
-  const [start, setStart] = useState({ x: 0, y: 0 });
-  const [len, setLen] = useState(0);
-  const [marks, setMarks] = useState<Mark[]>([]);
+  const reduce = useSyncExternalStore(
+    subscribeRM,
+    () => window.matchMedia(RM_QUERY).matches,
+    () => false,
+  );
+  const rootRef = useRef<HTMLSpanElement>(null);
 
-  const anchorRef = useRef<HTMLSpanElement>(null); // spans the intro block
-  const pinRef = useRef<HTMLButtonElement>(null);
-  const pathRef = useRef<SVGPathElement>(null);
-
-  const measure = useCallback(() => {
-    const a = anchorRef.current;
-    const p = pinRef.current;
-    if (!a || !p) return;
-    const ar = a.getBoundingClientRect();
-    const pr = p.getBoundingClientRect();
-    setBox({ w: ar.width, h: ar.height });
-    setStart({
-      x: pr.left + pr.width / 2 - ar.left,
-      y: pr.top + pr.height / 2 - ar.top,
-    });
+  // Re-render every hour so the Honolulu tenure keeps advancing even if the tab
+  // is left open for days.
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => tick((n) => n + 1), 60 * 60 * 1000);
+    return () => clearInterval(id);
   }, []);
+  const honoluluNote = tenureSince(HONOLULU_ARRIVAL, new Date());
+  const noteFor = (i: number) => (i === 0 ? honoluluNote : STOPS[i].note);
 
-  // measure on open + keep in step with layout changes
-  useLayoutEffect(() => {
-    if (!open) return;
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, [open, measure]);
-
-  // close on Escape / outside press
+  // close on Escape or a press anywhere outside
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
     const onDown = (e: PointerEvent) => {
-      const t = e.target as Node;
-      if (!anchorRef.current?.contains(t) && !pinRef.current?.contains(t)) {
-        setOpen(false);
-      }
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
     };
     window.addEventListener("keydown", onKey);
     window.addEventListener("pointerdown", onDown);
@@ -138,255 +109,118 @@ export default function JourneyMap() {
     };
   }, [open]);
 
-  const w = box?.w ?? 0;
-  const h = box?.h ?? 0;
-  const W = w + PAD_R; // full drawing width, text column + right margin
-  const H = h + PAD_B; // full drawing height, block + margin below
-
-  // guide points: dip off the pin into the gap under the name, sweep right
-  // clear of the text, bulge down the right margin, run along below the
-  // paragraph and climb the left edge — a loose coil *around* the writing
-  const guides: [number, number][] = box
-    ? [
-        [start.x, start.y],
-        [start.x + 34, start.y + 4],
-        [w * 0.54, h * 0.03],
-        [w * 0.9, h * 0.02],
-        [W - 8, h * 0.4],
-        [W - 26, h * 0.72],
-        [w * 0.8, H - 10],
-        [w * 0.36, H - 2],
-        [-10, h * 0.9],
-        [4, h * 0.52],
-      ]
-    : [];
-  const d = catmullRom(guides);
-
-  // once the path is in the DOM, walk it to place every stop + its label
-  useLayoutEffect(() => {
-    const path = pathRef.current;
-    if (!path || !d || !box) return;
-    const total = path.getTotalLength();
-    setLen(Math.round(total));
-
-    // labels are pushed away from the centre of the *text* column so they land
-    // in the margin the coil is bowing through
-    const cx = w / 2;
-    const cy = h / 2;
-    const clamp = (v: number, lo: number, hi: number) =>
-      Math.min(Math.max(v, lo), hi);
-    const fr = stopFractions();
-    const next: Mark[] = fr.map((f, i) => {
-      const pt = path.getPointAtLength(f * total);
-      let lx: number;
-      let ly: number;
-      let anchor: Mark["anchor"];
-      if (i === 0) {
-        // Honolulu sits on the pin — label to its right, at name height
-        lx = pt.x + 14;
-        ly = pt.y - 3;
-        anchor = "start";
-      } else if (pt.y < h * 0.18) {
-        // along the top arc — labels sit just above the line, right of the name
-        lx = pt.x;
-        ly = pt.y - 8;
-        anchor = "middle";
-      } else {
-        let dx = pt.x - cx;
-        let dy = pt.y - cy;
-        const m = Math.hypot(dx, dy) || 1;
-        dx /= m;
-        dy /= m;
-        lx = pt.x + dx * 18;
-        ly = pt.y + dy * 18;
-        anchor = dx > 0.25 ? "start" : dx < -0.25 ? "end" : "middle";
-      }
-      return {
-        x: pt.x,
-        y: pt.y,
-        f,
-        lx: clamp(lx, -46, W - 4),
-        ly: clamp(ly, -6, H - 6),
-        anchor,
-      };
-    });
-    setMarks(next);
-  }, [d, w, h, W, H, box]);
-
-  // the route draws + the stops appear as soon as the path's length is known
-  // (a render or two after opening, once the block has been measured)
-  const playing = open && len > 0;
-
   return (
-    <span className="contents">
+    <span ref={rootRef} className="relative inline-flex shrink-0">
       <button
-        ref={pinRef}
         type="button"
         aria-expanded={open}
         aria-label={
           open ? "Hide the places I've lived" : "Show the places I've lived"
         }
         onClick={() => setOpen((v) => !v)}
-        className="group mt-[2px] block shrink-0 cursor-pointer rounded-sm p-0.5 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c9a227]"
+        className="group mt-[2px] block cursor-pointer rounded-sm p-0.5 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c9a227]"
       >
         <NamePin active={open} />
       </button>
 
-      <span
-        ref={anchorRef}
-        aria-hidden={!open}
-        className="pointer-events-none absolute inset-0 z-20 overflow-visible"
+      {/* the panel: opens up and to the right of the mark, into the empty
+          space above the paragraph and clear of the name — so it never lands
+          on any writing or headings. Kept short (one line per stop) so it fits
+          the gap between the nav and the paragraph; right-anchored on small
+          screens so it can't run off the edge. */}
+      <div
+        aria-hidden="true"
+        className={`absolute bottom-[calc(100%-22px)] left-[calc(100%+8px)] z-30 max-h-[calc(100vh-4.5rem)] w-[196px] origin-bottom-left overflow-y-auto overflow-x-hidden rounded-xl border border-zinc-200 bg-white/95 shadow-xl backdrop-blur-sm transition duration-200 ease-out max-sm:left-auto max-sm:right-0 max-sm:origin-bottom-right dark:border-zinc-800 dark:bg-zinc-900/95 ${
+          open
+            ? "scale-100 opacity-100"
+            : "pointer-events-none scale-95 opacity-0"
+        }`}
       >
-        {box && (
-          <svg
-            width={W}
-            height={H}
-            viewBox={`0 0 ${W} ${H}`}
-            style={{ position: "absolute", left: 0, top: 0, overflow: "visible" }}
-            className={`text-[#8a7a00] transition-opacity duration-500 dark:text-[#c9a227] ${
-              open ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            {/* faint graticule over the text column, so the panel reads as a map */}
-            <g
-              stroke="currentColor"
-              strokeWidth={0.75}
-              style={{
-                opacity: open ? 0.08 : 0,
-                transition: "opacity 500ms ease-out",
-              }}
-            >
-              {Array.from({ length: 7 }, (_, i) => (
-                <line
-                  key={`v${i}`}
-                  x1={(w * (i + 1)) / 8}
-                  y1={0}
-                  x2={(w * (i + 1)) / 8}
-                  y2={h}
-                />
-              ))}
-              {Array.from({ length: 5 }, (_, i) => (
-                <line
-                  key={`h${i}`}
-                  x1={0}
-                  y1={(h * (i + 1)) / 6}
-                  x2={w}
-                  y2={(h * (i + 1)) / 6}
-                />
-              ))}
-            </g>
+        {/* faint graticule, so the card reads as a scrap of map */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.035] dark:opacity-[0.06]"
+          style={{
+            backgroundImage:
+              "linear-gradient(#8a7a00 1px, transparent 1px), linear-gradient(90deg, #8a7a00 1px, transparent 1px)",
+            backgroundSize: "26px 26px",
+          }}
+        />
 
-            {/* the route */}
-            <path
-              ref={pathRef}
-              d={d}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.6}
-              strokeLinecap="round"
-              strokeOpacity={0.9}
-              style={
-                {
-                  visibility: len > 0 ? "visible" : "hidden",
-                  strokeDasharray: len || 1,
-                  strokeDashoffset: playing ? 0 : len || 1,
-                  "--journey-len": `${len || 1}`,
-                  animation: playing
-                    ? `journey-draw ${DRAW_MS}ms ease-out both`
-                    : "none",
-                } as CSSProperties
-              }
+        <div className="relative px-3.5 py-3">
+          <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8a7a00] dark:text-[#c9a227]">
+            Where I&apos;ve lived
+          </p>
+
+          <ol className="relative">
+            {/* the rail, drawn top-down on open */}
+            <span
+              className="absolute left-[5px] w-px bg-[#8a7a00]/70 dark:bg-[#c9a227]/70"
+              style={{
+                top: 6,
+                bottom: 8,
+                transformOrigin: "top",
+                transform: open ? "scaleY(1)" : "scaleY(0)",
+                transition: reduce ? "none" : "transform 780ms ease-out",
+              }}
             />
 
-            {/* stops */}
-            {marks.map((mk, i) => {
-              const s = STOPS[i];
-              const delay = playing ? Math.round(mk.f * DRAW_MS * 0.85) : 0;
-              const first = i === 0;
+            {STOPS.map((s, i) => {
+              const delay = open && !reduce ? 140 + i * 95 : 0;
               return (
-                <g
+                <li
                   key={i}
-                  style={{
-                    opacity: playing ? 1 : 0,
-                    transformBox: "fill-box",
-                    transformOrigin: "center",
-                    transform: playing ? "scale(1)" : "scale(0.6)",
-                    transition: `opacity 320ms ease-out ${delay}ms, transform 340ms cubic-bezier(.2,.7,.3,1.35) ${delay}ms`,
-                  }}
+                  className="relative flex items-baseline gap-2 pl-5"
+                  style={{ marginTop: i === 0 ? 0 : GAPS[i - 1] }}
                 >
-                  {first && (
-                    <circle
-                      cx={mk.x}
-                      cy={mk.y}
-                      r={8}
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={1}
-                      strokeOpacity={0.4}
+                  <span
+                    className={`absolute left-0 top-[4px] h-[10px] w-[10px] rounded-full border-2 border-white bg-[#8a7a00] dark:border-zinc-900 dark:bg-[#c9a227] ${
+                      i === 0
+                        ? "ring-2 ring-[#8a7a00]/25 dark:ring-[#c9a227]/25"
+                        : ""
+                    }`}
+                    style={{
+                      opacity: open ? 1 : 0,
+                      transform: open ? "scale(1)" : "scale(0.4)",
+                      transition: reduce
+                        ? "none"
+                        : `opacity 240ms ease-out ${delay}ms, transform 300ms cubic-bezier(.2,.7,.3,1.4) ${delay}ms`,
+                    }}
+                  />
+                  <span
+                    className="flex min-w-0 flex-1 items-baseline gap-1.5"
+                    style={{
+                      opacity: open ? 1 : 0,
+                      transform: open ? "translateX(0)" : "translateX(-4px)",
+                      transition: reduce
+                        ? "none"
+                        : `opacity 240ms ease-out ${delay + 45}ms, transform 240ms ease-out ${delay + 45}ms`,
+                    }}
+                  >
+                    <span className="truncate text-[12px] font-semibold leading-tight text-zinc-800 dark:text-zinc-100">
+                      {s.name}
+                    </span>
+                    <span
+                      className="shrink-0 text-[10px] leading-tight text-zinc-400 dark:text-zinc-500"
+                      suppressHydrationWarning
                     >
-                      <animate
-                        attributeName="r"
-                        values="4;10;4"
-                        dur="2.4s"
-                        repeatCount="indefinite"
-                      />
-                      <animate
-                        attributeName="stroke-opacity"
-                        values="0.5;0;0.5"
-                        dur="2.4s"
-                        repeatCount="indefinite"
-                      />
-                    </circle>
-                  )}
-                  <circle
-                    cx={mk.x}
-                    cy={mk.y}
-                    r={first ? 4 : 3}
-                    fill="currentColor"
-                  />
-                  <circle
-                    cx={mk.x}
-                    cy={mk.y}
-                    r={first ? 4 : 3}
-                    fill="none"
-                    stroke="var(--background, #fff)"
-                    strokeWidth={1.3}
-                  />
-                  <text
-                    x={mk.lx}
-                    y={mk.ly}
-                    textAnchor={mk.anchor}
-                    dominantBaseline="middle"
-                    className="fill-zinc-700 dark:fill-zinc-200"
-                    style={{ fontSize: 11, fontWeight: 600 }}
-                  >
-                    {s.name}
-                  </text>
-                  <text
-                    x={mk.lx}
-                    y={mk.ly + 11}
-                    textAnchor={mk.anchor}
-                    dominantBaseline="middle"
-                    className="fill-zinc-400 dark:fill-zinc-500"
-                    style={{ fontSize: 9, letterSpacing: 0.3 }}
-                  >
-                    {s.note}
-                  </text>
-                </g>
+                      {noteFor(i)}
+                    </span>
+                  </span>
+                </li>
               );
             })}
-          </svg>
-        )}
+          </ol>
+        </div>
+      </div>
 
-        {/* the same route, read out for assistive tech */}
-        <ul className="sr-only">
-          {STOPS.map((s, i) => (
-            <li key={i}>
-              {s.name} — {s.note}
-            </li>
-          ))}
-        </ul>
-      </span>
+      {/* the same route, read out for assistive tech */}
+      <ul className="sr-only">
+        {STOPS.map((s, i) => (
+          <li key={i} suppressHydrationWarning>
+            {s.name} — {noteFor(i)}
+          </li>
+        ))}
+      </ul>
     </span>
   );
 }

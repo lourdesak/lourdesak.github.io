@@ -57,6 +57,15 @@ const AWARDS: Award[] = [
     kind: "grant",
   },
   {
+    // East-West Center Leadership Exchange Advanced Degree (LEAD) Scholar
+    // Program — for UH Mānoa graduate students admitted to the EWC's
+    // international scholar community. Externally/self-funded, so no amount.
+    title: "LEAD Scholar",
+    note: "East-West Center (EWC)",
+    period: "Aug. 2026 – present",
+    kind: "honour",
+  },
+  {
     title: "SuperNova Undergraduate Research Fellow",
     note: "Academic Distinction noted on transcript at graduation",
     period: "Aug. 2025",

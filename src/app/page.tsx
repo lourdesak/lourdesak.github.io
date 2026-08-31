@@ -3,11 +3,15 @@ import HoverPhoto from "./components/HoverPhoto";
 import JourneyMap from "./components/JourneyMap";
 import NameWave from "./components/NameWave";
 import ParticleCollision from "./components/ParticleCollision";
+import ThemeToggle from "./components/ThemeToggle";
 
 export default function Home() {
   return (
     <div className="relative flex flex-col flex-1 items-center justify-center overflow-x-clip bg-zinc-50 font-sans dark:bg-black">
       <ParticleCollision />
+      {/* mirrors the nav pill on the opposite corner; z-50 clears the nav's
+          top mask bar */}
+      <ThemeToggle className="fixed right-6 top-6 z-50" />
       <main className="relative z-10 flex w-full max-w-2xl flex-col gap-8 px-6 py-24">
         <div className="relative flex flex-col gap-4">
           <div className="flex items-start gap-1">

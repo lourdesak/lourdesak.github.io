@@ -118,7 +118,7 @@ export default function AwardsList({ awards }: { awards: Award[] }) {
 
               <span className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
                 {award.amount !== undefined && (
-                  <span className="rounded-full border border-zinc-300 px-2 py-0.5 text-[11px] font-medium tabular-nums tracking-wide text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
+                  <span className="rounded-full border border-[#8a7a00] px-2 py-0.5 text-[11px] font-medium tabular-nums tracking-wide text-zinc-600 dark:text-zinc-300">
                     {money.format(award.amount)}
                   </span>
                 )}

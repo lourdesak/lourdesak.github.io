@@ -11,6 +11,10 @@ export type CarouselImage = {
   /** intrinsic pixel size, so the browser reserves the right box before load */
   w?: number;
   h?: number;
+  /** renders as a looping, muted <video> instead of an <img> */
+  type?: "video";
+  /** shown while the video loads; only meaningful when type is "video" */
+  poster?: string;
 };
 
 /**
@@ -33,16 +37,26 @@ export type CarouselImage = {
 export default function ImageCarousel({
   images,
   fill = false,
+  active,
 }: {
   images: CarouselImage[];
   fill?: boolean;
+  /**
+   * Drives the cycling from outside. Callers that lay something over the
+   * carousel (SimulationDetail's click target) steal the hover, so they track
+   * it themselves and hand it in here. Left undefined, the carousel watches
+   * its own hover as before.
+   */
+  active?: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
   const [tick, setTick] = useState(0);
   const [transitioning, setTransitioning] = useState(false);
 
+  const running = active ?? hovered;
+
   useEffect(() => {
-    if (!hovered || images.length < 2) return;
+    if (!running || images.length < 2) return;
 
     const interval = setInterval(() => {
       setTick((t) => t - 1);
@@ -50,7 +64,7 @@ export default function ImageCarousel({
       setTimeout(() => setTransitioning(false), TRANSITION_MS);
     }, INTERVAL_MS);
     return () => clearInterval(interval);
-  }, [hovered, images.length]);
+  }, [running, images.length]);
 
   if (images.length === 0) {
     return (
@@ -75,25 +89,23 @@ export default function ImageCarousel({
       onMouseLeave={() => setHovered(false)}
     >
       {transitioning && (
-        <img
+        <Slide
           key={`out-${tick}`}
-          src={images[prev].src}
-          alt=""
-          draggable={false}
+          image={images[prev]}
+          // the outgoing slide stays absolutely positioned even off `fill`,
+          // so it can slide away without disturbing document flow
           className={`absolute inset-0 h-full w-full ${fill ? "object-contain" : ""}`}
+          alt=""
           style={{ animation: `slide-out-left ${TRANSITION_MS}ms ease-in-out forwards` }}
         />
       )}
-      <img
+      <Slide
         key={`in-${tick}`}
-        src={images[current].src}
-        alt={images[current].alt}
-        draggable={false}
-        width={images[current].w}
-        height={images[current].h}
+        image={images[current]}
         className={
           fill ? "absolute inset-0 h-full w-full object-contain" : "block h-auto w-full"
         }
+        alt={images[current].alt}
         style={
           transitioning
             ? { animation: `slide-in-left ${TRANSITION_MS}ms ease-in-out forwards` }
@@ -101,5 +113,47 @@ export default function ImageCarousel({
         }
       />
     </div>
+  );
+}
+
+/** One slide: an <img>, or a looping muted <video> when the item asks for it. */
+function Slide({
+  image,
+  className,
+  alt,
+  style,
+}: {
+  image: CarouselImage;
+  className: string;
+  alt: string;
+  style?: React.CSSProperties;
+}) {
+  if (image.type === "video") {
+    return (
+      <video
+        src={image.src}
+        poster={image.poster}
+        width={image.w}
+        height={image.h}
+        className={className}
+        style={style}
+        autoPlay
+        loop
+        muted
+        playsInline
+      />
+    );
+  }
+
+  return (
+    <img
+      src={image.src}
+      alt={alt}
+      draggable={false}
+      width={image.w}
+      height={image.h}
+      className={className}
+      style={style}
+    />
   );
 }

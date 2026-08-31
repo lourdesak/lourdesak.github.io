@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { onThemeChange, resolvedTheme } from "../lib/theme";
 
 const SEED_SPEED = 0.22; // px/ms
 const SEED_RADIUS = 28;
@@ -93,6 +94,13 @@ const GOLD_HUE_JITTER = 0.16; // per-tube drift along the amber→gold ramp
 const STRIKE_LIFE_MS = 900; // how long a struck tube keeps glowing
 const STRIKE_CORE = [255, 250, 226] as const;
 const STRIKE_GLOW = [255, 184, 54] as const;
+
+// The wireframe spheres and the shockwave ring are the only marks drawn in a
+// neutral ink rather than gold. White reads on the near-black dark page; on the
+// light page it vanishes, so it flips to a dark zinc. Resolved in JS because a
+// <canvas> can't carry a `dark:` class.
+const INK_ON_DARK = [255, 255, 255] as const;
+const INK_ON_LIGHT = [39, 39, 42] as const; // zinc-800
 
 type Vec = { x: number; y: number };
 
@@ -327,20 +335,22 @@ function drawWireSphere(
   radius: number,
   opacity: number,
   lines: SphereLine[],
+  // Stroke colour, so the wireframe stays visible on either page background.
+  ink: RGB,
   // How far the sphere has turned about its own axis. Defaults to 0 so a call
   // site that doesn't spin still draws a complete wireframe.
   angle = 0,
 ) {
   // a sphere's silhouette doesn't change as it turns, so only the wireframe
   // inside it moves
-  ctx.strokeStyle = `rgba(255,255,255,${opacity})`;
+  ctx.strokeStyle = rgba(ink, opacity);
   ctx.lineWidth = 1.4;
   ctx.beginPath();
   ctx.arc(x, y, radius, 0, Math.PI * 2);
   ctx.stroke();
 
   for (const line of lines) {
-    ctx.strokeStyle = `rgba(255,255,255,${opacity * line.alpha})`;
+    ctx.strokeStyle = rgba(ink, opacity * line.alpha);
     ctx.lineWidth = line.width;
     if (line.kind === "chord") {
       // both endpoints ride around the surface as it rotates
@@ -640,6 +650,12 @@ export default function ParticleCollision() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    // Neutral ink for the spheres and the ring, kept in step with the theme.
+    let ink: RGB = resolvedTheme() === "dark" ? INK_ON_DARK : INK_ON_LIGHT;
+    const stopThemeWatch = onThemeChange(() => {
+      ink = resolvedTheme() === "dark" ? INK_ON_DARK : INK_ON_LIGHT;
+    });
+
     let width = 0;
     let height = 0;
     let wall: { sprite: HTMLCanvasElement; geo: WallGeometry } | null = null;
@@ -789,6 +805,7 @@ export default function ParticleCollision() {
           first.radius,
           0.9,
           first.lines,
+          ink,
           first.angle + first.look,
         );
         if (phase.stage === "charge") {
@@ -799,6 +816,7 @@ export default function ParticleCollision() {
             second.radius,
             0.9,
             second.lines,
+            ink,
             second.angle,
           );
         }
@@ -818,7 +836,7 @@ export default function ParticleCollision() {
           // extra energy mostly shows, since it costs no dwell time
           const ringAlpha = Math.min(0.75, 0.5 * phase.energy);
           const ringSpread = 90 * (1 + (phase.energy - 1) * 0.45);
-          ctx!.strokeStyle = `rgba(255,255,255,${ringAlpha * (1 - ringT)})`;
+          ctx!.strokeStyle = rgba(ink, ringAlpha * (1 - ringT));
           ctx!.lineWidth = 1.5;
           ctx!.beginPath();
           ctx!.arc(phase.origin.x, phase.origin.y, 6 + ringT * ringSpread, 0, Math.PI * 2);
@@ -899,7 +917,7 @@ export default function ParticleCollision() {
 
           const lifeT = f.age / f.life;
           const opacity = 1 - lifeT;
-          drawWireSphere(ctx!, f.pos.x, f.pos.y, f.size, opacity * 0.9, f.lines, f.angle);
+          drawWireSphere(ctx!, f.pos.x, f.pos.y, f.size, opacity * 0.9, f.lines, ink, f.angle);
         }
 
         // struck tubes glow on above the wall, and outlive the fragment that
@@ -927,6 +945,7 @@ export default function ParticleCollision() {
 
     return () => {
       cancelAnimationFrame(frameId);
+      stopThemeWatch();
       window.removeEventListener("resize", resize);
       window.removeEventListener("mousemove", handlePointerMove);
       document.removeEventListener("mouseleave", handlePointerLeave);

@@ -1,6 +1,31 @@
 @import "tailwindcss";
 
+/*
+ * `dark:` utilities and the dark theme tokens are driven by three states:
+ *
+ *   <html> with no data-theme        -> follow the OS (prefers-color-scheme)
+ *   <html data-theme="light">        -> forced light, ignore the OS
+ *   <html data-theme="dark">         -> forced dark, ignore the OS
+ *
+ * The pre-paint <script> in app/layout.tsx sets the attribute from
+ * localStorage before the first paint; ThemeToggle flips it at runtime. With
+ * no stored choice the attribute is absent and the media-query branch below
+ * takes over, so automatic light/dark keeps working with or without JS.
+ */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:not([data-theme="light"], [data-theme="light"] *)) {
+      @slot;
+    }
+  }
+}
+
 :root {
+  color-scheme: light;
+
   --background: #ffffff;
   --foreground: #171717;
 
@@ -41,8 +66,17 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Forced dark — wins over the OS setting. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+/* OS dark, taken only when no explicit choice is pinned. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --background: #0a0a0a;
     --foreground: #ededed;
   }

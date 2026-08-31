@@ -129,6 +129,16 @@ const BOOKS = [
       "A history of the number zero and the void it stands for — the idea philosophers feared and mathematicians needed.",
     cover: "/books/zero.jpg",
   },
+  {
+    title: "What Is Life?",
+    author: "Erwin Schrödinger",
+    field: "Physics",
+    description:
+      "A physicist's lecture-turned-essay asking how living matter escapes decay — the book that pointed a generation of physicists toward biology.",
+    cover: "/books/what-is-life.jpg",
+    // title runs to the top edge — anchor the crop up so it isn't clipped
+    coverPosition: "50% 6%",
+  },
 ];
 
 export default function HobbiesPage() {

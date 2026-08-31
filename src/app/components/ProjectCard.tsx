@@ -5,6 +5,8 @@ export type Project = {
   /** the field it sits in, set as a small pill — as the books panel does */
   tag?: string;
   description?: string;
+  /** how long she worked on it, shown quietly in the card's bottom-right */
+  duration?: string;
   /** photographs or similar; a card without any gets a quiet silver panel */
   content?: React.ReactNode;
 };
@@ -69,6 +71,12 @@ export default function ProjectCard({
         {project.description && (
           <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
             {project.description}
+          </p>
+        )}
+
+        {project.duration && (
+          <p className="mt-auto self-end pt-3 text-[11px] font-medium tabular-nums text-zinc-400 dark:text-zinc-500">
+            {project.duration}
           </p>
         )}
       </div>
