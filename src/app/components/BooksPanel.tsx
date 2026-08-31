@@ -70,14 +70,14 @@ function BookCover({
         src={cover}
         alt={`${title} cover`}
         style={coverPosition ? { objectPosition: coverPosition } : undefined}
-        className={`h-72 w-52 flex-none rounded-md border border-zinc-300/70 object-cover shadow-lg dark:border-zinc-700/60 ${spinClass}`}
+        className={`h-72 w-52 flex-none rounded-md border border-zinc-300/70 object-cover shadow-lg max-sm:h-52 max-sm:w-36 dark:border-zinc-700/60 ${spinClass}`}
       />
     );
   }
 
   return (
     <div
-      className={`relative h-72 w-52 flex-none overflow-hidden rounded-md border border-zinc-300/70 shadow-lg dark:border-zinc-700/60 ${spinClass}`}
+      className={`relative h-72 w-52 flex-none overflow-hidden rounded-md border border-zinc-300/70 shadow-lg max-sm:h-52 max-sm:w-36 dark:border-zinc-700/60 ${spinClass}`}
     >
       <div className="absolute inset-0 bg-gradient-to-br from-zinc-100 via-zinc-200 to-zinc-400 dark:from-zinc-700 dark:via-zinc-800 dark:to-zinc-950" />
       <div className="absolute inset-y-0 left-0 w-2 bg-black/10 dark:bg-black/30" />
@@ -193,19 +193,19 @@ export default function BooksPanel({ books }: { books: Book[] }) {
         <span className={`${frame.bevel} ${frame.bottom}`} />
         <span className={`${frame.bevel} ${frame.left}`} />
         <div className={`${frame.inner} border border-zinc-200/70 bg-gradient-to-r from-zinc-300/85 via-zinc-200/80 to-zinc-300/85 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.6)] backdrop-blur-md dark:border-zinc-800/70 dark:from-zinc-950/90 dark:via-black/85 dark:to-zinc-950/90 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]`}>
-          <div className="mx-auto flex max-w-5xl items-center gap-10 px-10 py-16">
+          <div className="mx-auto flex max-w-5xl items-center gap-10 px-10 py-16 max-sm:flex-col max-sm:gap-6 max-sm:px-4 max-sm:py-8">
           <button
             type="button"
             onClick={() => go(-1)}
             aria-label="Previous book"
-            className="flex h-11 w-11 flex-none items-center justify-center rounded-full border border-zinc-300 text-zinc-500 transition hover:border-zinc-400 hover:text-zinc-800 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-100"
+            className="flex h-11 w-11 flex-none items-center justify-center rounded-full border border-zinc-300 text-zinc-500 transition hover:border-zinc-400 hover:text-zinc-800 max-sm:h-9 max-sm:w-9 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-100"
           >
             <ChevronIcon direction="left" />
           </button>
 
           <div
             key={index}
-            className="flex flex-1 animate-[fade-in_400ms_ease-out] items-center gap-10"
+            className="flex flex-1 animate-[fade-in_400ms_ease-out] items-center gap-10 max-sm:flex-col max-sm:gap-4 max-sm:text-center"
             style={{ perspective: 1000 }}
           >
             <BookCover
@@ -220,12 +220,12 @@ export default function BooksPanel({ books }: { books: Book[] }) {
                   {index + 1} of {books.length}
                 </p>
                 <h3
-                  className={`${playfairDisplay.className} text-3xl font-semibold italic tracking-wide text-zinc-900 dark:text-zinc-50`}
+                  className={`${playfairDisplay.className} text-3xl font-semibold italic tracking-wide text-zinc-900 max-sm:text-2xl dark:text-zinc-50`}
                 >
                   {book.title}
                 </h3>
                 <p className="text-base text-zinc-500 dark:text-zinc-400">{book.author}</p>
-                <span className="mt-2 inline-flex w-fit items-center rounded-full border border-[#8a7a00] px-2.5 py-1 text-xs font-medium uppercase tracking-wide text-zinc-600 dark:text-zinc-300">
+                <span className="mt-2 inline-flex w-fit items-center rounded-full border border-[#8a7a00] px-2.5 py-1 text-xs font-medium uppercase tracking-wide text-zinc-600 max-sm:mx-auto dark:text-zinc-300">
                   {book.field}
                 </span>
               </div>
@@ -239,7 +239,7 @@ export default function BooksPanel({ books }: { books: Book[] }) {
             type="button"
             onClick={() => go(1)}
             aria-label="Next book"
-            className="flex h-11 w-11 flex-none items-center justify-center rounded-full border border-zinc-300 text-zinc-500 transition hover:border-zinc-400 hover:text-zinc-800 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-100"
+            className="flex h-11 w-11 flex-none items-center justify-center rounded-full border border-zinc-300 text-zinc-500 transition hover:border-zinc-400 hover:text-zinc-800 max-sm:h-9 max-sm:w-9 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-100"
           >
             <ChevronIcon direction="right" />
           </button>

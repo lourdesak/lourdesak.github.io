@@ -61,7 +61,7 @@ export default function BookRecommendationsLabel({
   return (
     <p
       ref={ref}
-      className={`${fontClassName} pointer-events-none absolute left-6 top-36 text-3xl italic tracking-wide text-zinc-800 dark:text-zinc-100 ${className}`}
+      className={`${fontClassName} pointer-events-none absolute left-6 top-36 text-3xl italic tracking-wide text-zinc-800 max-sm:left-4 max-sm:top-24 max-sm:text-xl dark:text-zinc-100 ${className}`}
     >
       Book recommendations
     </p>

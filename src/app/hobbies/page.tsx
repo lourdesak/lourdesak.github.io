@@ -149,25 +149,30 @@ export default function HobbiesPage() {
         <PageShell
           title="Hobbies"
           header={
-            <div className="flex flex-col items-center gap-8">
+            <div className="flex flex-col items-center gap-8 max-sm:overflow-hidden">
               <ScrollPastTitle targetId="crossroads" />
               <PhotographerWalk />
               <h2
                 id="crossroads"
-                className={`${playfairDisplay.className} animate-[fade-in_2s_ease-out] text-center text-3xl italic tracking-wide text-zinc-800 dark:text-zinc-100`}
+                className={`${playfairDisplay.className} animate-[fade-in_2s_ease-out] text-center text-3xl italic tracking-wide text-zinc-800 max-sm:whitespace-nowrap max-sm:text-base max-sm:tracking-normal dark:text-zinc-100`}
               >
-                Crossroads of Travelling & Photography
+                Crossroads of Travelling &amp; Photography
               </h2>
-              {/* relative so the flanking panes can be placed against the wall */}
-              <div className="relative mt-12">
-                <SidePanes height={MOSAIC_HEIGHT} />
-                <MosaicGallery
-                  tiles={MOSAIC_TILES}
-                  images={MOSAIC_IMAGES}
-                  places={MOSAIC_PLACES}
-                  width={MOSAIC_WIDTH}
-                  height={MOSAIC_HEIGHT}
-                />
+              {/* relative so the flanking panes can be placed against the wall.
+                  The wall is a fixed 1050px composition; on phones it can't
+                  reflow, so it's scaled down into a screen-width box that only
+                  reserves its scaled height. PC (>= sm) is untouched. */}
+              <div className="relative mt-12 max-sm:mt-6 max-sm:h-[175px] max-sm:w-full max-sm:overflow-hidden">
+                <div className="max-sm:absolute max-sm:left-1/2 max-sm:top-0 max-sm:origin-top max-sm:-translate-x-1/2 max-sm:scale-[0.24]">
+                  <SidePanes height={MOSAIC_HEIGHT} />
+                  <MosaicGallery
+                    tiles={MOSAIC_TILES}
+                    images={MOSAIC_IMAGES}
+                    places={MOSAIC_PLACES}
+                    width={MOSAIC_WIDTH}
+                    height={MOSAIC_HEIGHT}
+                  />
+                </div>
               </div>
             </div>
           }
