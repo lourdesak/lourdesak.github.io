@@ -437,10 +437,21 @@ const PRESENTATIONS: Presentation[] = [
   },
 ];
 
-function SectionHeading({ children }: { children: React.ReactNode }) {
+function SectionHeading({
+  children,
+  pill = false,
+}: {
+  children: React.ReactNode;
+  /** wrap the heading text in the same gold oval the tag pills use */
+  pill?: boolean;
+}) {
   return (
     <h2
-      className={`${playfairDisplay.className} text-2xl italic tracking-wide text-zinc-800 dark:text-zinc-100`}
+      className={`${playfairDisplay.className} text-2xl italic tracking-wide text-zinc-800 dark:text-zinc-100 ${
+        pill
+          ? "inline-flex self-start rounded-full border border-[#8a7a00] px-5 py-1.5"
+          : ""
+      }`}
     >
       {children}
     </h2>
@@ -452,7 +463,7 @@ export default function ProjectsPage() {
     <PageShell title="Projects">
       <div className="flex w-full flex-col gap-16 pb-24 pt-6">
         <section className="flex flex-col gap-6">
-          <SectionHeading>Featured</SectionHeading>
+          <SectionHeading pill>Featured Research Projects</SectionHeading>
           {/* The featured project runs the full width rather than sitting in a
               half-width cell — being featured should look like something. */}
           <div className="grid grid-cols-1 gap-8">
@@ -468,7 +479,7 @@ export default function ProjectsPage() {
         </section>
 
         <section className="flex flex-col gap-6">
-          <SectionHeading>Research</SectionHeading>
+          <SectionHeading pill>Other Research</SectionHeading>
           {/* Columns by breakpoint rather than fixed pixel widths, which used to
               push the page wider than the window on a narrow screen. */}
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
