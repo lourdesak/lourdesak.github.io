@@ -199,3 +199,101 @@ body {
     transform: translateX(-50%);
   }
 }
+
+/*
+ * The intro for a featured project's detail panels. On open the subheadings
+ * come in first, evenly spaced with their sentences still collapsed, each
+ * easing in a touch enlarged and then settling to its resting size. Once they
+ * are all in, the column unfurls: every sentence opens from zero height
+ * (grid-template-rows 0fr -> 1fr, composited-friendly and reflow-honest) and
+ * fades in, pushing the subheadings down to their real, text-dependent spots.
+ *
+ * Rows stagger by --pi (set per nth-child below). Every animation's last frame
+ * matches the resting CSS, and `backwards` fill only holds the first frame
+ * through the stagger delay, so the settled panel is left untouched.
+ */
+@keyframes detail-lead-in {
+  0% {
+    opacity: 0;
+    transform: translateY(2px) scale(1.22);
+  }
+  30% {
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(0) scale(1.22);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes detail-body-open {
+  from {
+    grid-template-rows: 0fr;
+  }
+  to {
+    grid-template-rows: 1fr;
+  }
+}
+
+@keyframes detail-body-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Resting state — sentence fully open. Also what reduced-motion users get. */
+.detail-body-wrap {
+  grid-template-rows: 1fr;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .detail-points > li {
+    --pi: 0;
+  }
+  .detail-points > li:nth-child(2) {
+    --pi: 1;
+  }
+  .detail-points > li:nth-child(3) {
+    --pi: 2;
+  }
+  .detail-points > li:nth-child(4) {
+    --pi: 3;
+  }
+  .detail-points > li:nth-child(5) {
+    --pi: 4;
+  }
+  .detail-points > li:nth-child(6) {
+    --pi: 5;
+  }
+  .detail-points > li:nth-child(7) {
+    --pi: 6;
+  }
+  .detail-points > li:nth-child(8) {
+    --pi: 7;
+  }
+
+  .detail-points .detail-lead {
+    transform-origin: left center;
+    will-change: transform;
+    animation: detail-lead-in 850ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    animation-delay: calc(var(--pi) * 90ms);
+  }
+
+  /* All sentences open together once the subheadings have arrived, so the
+     spacing visibly resolves from even to text-driven in one slow motion. */
+  .detail-points .detail-body-wrap {
+    animation: detail-body-open 1600ms cubic-bezier(0.45, 0.05, 0.2, 1)
+      backwards;
+    animation-delay: 900ms;
+  }
+  .detail-points .detail-body {
+    animation: detail-body-fade 1000ms ease-out backwards;
+    animation-delay: calc(var(--pi) * 60ms + 1050ms);
+  }
+}

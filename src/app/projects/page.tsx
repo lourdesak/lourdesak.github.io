@@ -2,6 +2,10 @@ import { Playfair_Display } from "next/font/google";
 import PageShell from "../components/PageShell";
 import SimulationDetail from "../components/SimulationDetail";
 import ProjectCard, { type Project } from "../components/ProjectCard";
+import ResearchPanel from "../components/ResearchPanel";
+import PresentationsList, {
+  type Presentation,
+} from "../components/PresentationsList";
 import GappedRule from "../components/GappedRule";
 import OysterIcon from "../components/OysterIcon";
 
@@ -34,12 +38,46 @@ function Hl({ children }: { children: React.ReactNode }) {
   return <span className="text-yellow-300">{children}</span>;
 }
 
-// The bullet list that fills each section panel in the Stopping-Muon detail.
+// The titled-bullet list that fills each section panel of a project detail.
+// `detail-points` drives the open-time intro animation (see globals.css).
 function DetailPoints({ children }: { children: React.ReactNode }) {
   return (
-    <ul className="flex flex-col gap-3 text-left text-[13px] leading-relaxed text-zinc-300 marker:text-[#8a7a00]/70">
+    <ul className="detail-points flex flex-col gap-4 text-left text-[13px] text-zinc-300">
       {children}
     </ul>
+  );
+}
+
+// One accomplishment: a short bold lead, then the detail beneath it, marked
+// with the same gold hairline the section headings use.
+function Point({
+  lead,
+  children,
+}: {
+  lead: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <li className="grid grid-cols-[auto_1fr] gap-x-3">
+      <span
+        aria-hidden
+        className="mt-[9px] h-px w-3 shrink-0 bg-[#8a7a00]/80"
+      />
+      <div>
+        <p className="detail-lead font-bold tracking-tight text-zinc-100">
+          {lead}
+        </p>
+        {/* Grid wrapper collapses to zero height during the intro so the
+            subheadings start evenly spaced, then opens to push them apart. */}
+        <div className="detail-body-wrap grid">
+          <div className="overflow-hidden">
+            <p className="detail-body pt-1 text-[13.5px] leading-relaxed text-zinc-400">
+              {children}
+            </p>
+          </div>
+        </div>
+      </div>
+    </li>
   );
 }
 
@@ -61,47 +99,62 @@ const FEATURED: Project[] = [
             heading: "DUNE",
             poster: {
               src: "/posters/dune.jpg",
-              alt: "Conference poster: Neutrino Physics with the Deep Underground Neutrino Experiment",
+              alt: "Conference poster: Studying Neutrinos with the Deep Underground Neutrino Experiment",
             },
             body: (
               <DetailPoints>
-                <li>
-                  Conducted a literature review of long-baseline oscillation
-                  physics and LBNF beamline design to ground subsequent analysis
-                  work.
-                </li>
-                <li>
-                  Configured Fermilab computing accounts and operated in a{" "}
+                <Point lead="Literature review">
+                  Surveyed long-baseline oscillation physics and LBNF beamline
+                  design to ground the analysis work that followed.
+                </Point>
+                <Point lead="Computing environment">
+                  Set up Fermilab computing accounts and worked in a{" "}
                   <Hl>Linux</Hl>/<Hl>bash</Hl> environment for remote job
                   submission and data access.
-                </li>
-                <li>
+                </Point>
+                <Point lead="Workflow onboarding">
                   Learned the collaboration&apos;s simulation and validation
                   workflow end to end.
-                </li>
+                </Point>
               </DetailPoints>
             ),
           },
           {
-            heading: "Muon Monitors",
+            heading: "Muon Monitors (MuMs)",
             body: (
               <DetailPoints>
-                <li>
-                  Analyzed simulated muon flux across three downstream monitors
-                  using <Hl>C++</Hl> and <Hl>ROOT</Hl>.
-                </li>
-                <li>
-                  Generated 2D flux heatmaps to characterize beam profiles, then
-                  applied z cuts to isolate contributions by depth.
-                </li>
-                <li>
-                  Produced histograms and flux distributions that identified a
-                  beam misalignment relative to the monitor axis.
-                </li>
-                <li>
-                  Drove a correction propagated through the full simulation
-                  chain, improving beam modeling fidelity.
-                </li>
+                <Point lead="Detector context">
+                  Worked with the three Muon Monitors (<Hl>MuMs</Hl>, Alcoves
+                  1&ndash;3) sitting downstream of the decay pipe and hadron
+                  absorber, where the muon beam is measured as a proxy for the
+                  harder-to-detect neutrino beam.
+                </Point>
+                <Point lead="Flux analysis">
+                  Analyzed simulated muon flux and energy distributions across
+                  the three monitors at 100M protons-on-target (PoT) using{" "}
+                  <Hl>C++</Hl> and <Hl>ROOT</Hl>.
+                </Point>
+                <Point lead="Beam monitoring">
+                  Generated 2D X&ndash;Y flux heatmaps per alcove to
+                  characterize the beam profile, then applied z cuts along the
+                  beamline to isolate contributions by depth and track how beam
+                  properties evolve between alcoves.
+                </Point>
+                <Point lead="Horn-current modes">
+                  Compared Forward (<Hl>FHC</Hl>) and Reverse (<Hl>RHC</Hl>)
+                  magnetic-horn current settings, which switch the focused beam
+                  between neutrino (antimuon-rich) and antineutrino (muon-rich)
+                  running.
+                </Point>
+                <Point lead="Misalignment finding">
+                  Produced histograms and flux distributions &mdash; including
+                  total muon flux versus z along the beamline &mdash; that
+                  revealed a beam misalignment relative to the monitor axis.
+                </Point>
+                <Point lead="Correction and impact">
+                  Drove a correction through the full simulation chain,
+                  improving beam-modeling fidelity.
+                </Point>
               </DetailPoints>
             ),
           },
@@ -109,19 +162,45 @@ const FEATURED: Project[] = [
             heading: "Geant-4 Simulation",
             body: (
               <DetailPoints>
-                <li>
-                  Integrated simplified detector geometry into <Hl>g4lbnf</Hl>,
-                  the <Hl>Geant4</Hl> simulation of the LBNF beamline.
-                </li>
-                <li>
-                  Built a stopping-muon detector simulation from scratch,
-                  defining geometry, materials, physics lists, and sensitive
-                  detector readout.
-                </li>
-                <li>
-                  Developed the simulation into <Hl>MARGARITA</Hl>, the basis of
-                  an undergraduate senior thesis.
-                </li>
+                <Point lead="Geometry integration">
+                  Integrated a simplified detector geometry into{" "}
+                  <Hl>g4lbnf</Hl>, the <Hl>Geant4</Hl> simulation of the LBNF
+                  beamline, and built a standalone detector construction
+                  defining sensitive and non-sensitive volumes, material
+                  assignments, and world-volume placement.
+                </Point>
+                <Point lead="Beam configuration">
+                  Implemented a configurable primary generator around the{" "}
+                  <Hl>Geant4 General Particle Source</Hl>, exposing particle
+                  type, planar source geometry, propagation direction, and a
+                  linear energy spectrum through run macros so beam conditions
+                  could be varied without recompiling.
+                </Point>
+                <Point lead="Physics modeling">
+                  Applied the <Hl>QGSP_BERT</Hl> reference physics list to model
+                  hadronic interactions and electromagnetic energy loss for
+                  low-energy muons traversing the detector medium.
+                </Point>
+                <Point lead="Identification algorithm">
+                  Optimized the stopping-muon identification logic in{" "}
+                  <Hl>C++</Hl> using tracking-level stepping actions, and
+                  validated the algorithm in consultation with <Hl>Geant4</Hl>{" "}
+                  experts.
+                </Point>
+                <Point lead="Analysis framework">
+                  Built a histogram manager on <Hl>G4AnalysisManager</Hl>{" "}
+                  producing 1D and 2D distributions of energy spectra, radial
+                  vertex density, and angular distributions in theta and phi,
+                  plus an ntuple recording particle ID, incident position,
+                  incident angle, and event weight. Output format and binning
+                  were runtime-configurable via messenger commands, with{" "}
+                  <Hl>ROOT</Hl> as the default backend.
+                </Point>
+                <Point lead="MARGARITA and thesis">
+                  Developed the full simulation into <Hl>MARGARITA</Hl>, a
+                  modular <Hl>Geant4</Hl> stopping-muon detector framework and
+                  the basis of an undergraduate senior thesis.
+                </Point>
               </DetailPoints>
             ),
           },
@@ -149,9 +228,118 @@ const FEATURED: Project[] = [
               src: "/posters/cosmic-watches.jpg",
               alt: "Conference poster: Cosmic Ray Detection with High-Altitude Balloon Launches",
             },
+            body: (
+              <DetailPoints>
+                <Point lead="HERA collaboration">
+                  Contributed to the <Hl>HERA</Hl> collaboration between Drexel
+                  University and Springside Chestnut Hill Academy, pairing
+                  university researchers with secondary-school students on live
+                  flight campaigns.
+                </Point>
+                <Point lead="Student training">
+                  Trained student team members on payload assembly, sensor
+                  integration, and launch-day procedure through Drexel&apos;s
+                  Vertically Integrated Projects (<Hl>VIP</Hl>) program.
+                </Point>
+                <Point lead="Multi-site coordination">
+                  Supported coordinated multi-site launches under the NASA
+                  Nationwide Eclipse Ballooning Project, including preparation
+                  for joint flights with collaborators across several U.S.
+                  states and Australia.
+                </Point>
+                <Point lead="Outreach">
+                  Communicated results through a poster presentation and
+                  hands-on demonstrations of detector operation to student and
+                  public audiences.
+                </Point>
+              </DetailPoints>
+            ),
           },
-          { heading: "Software" },
-          { heading: "Hardware" },
+          {
+            heading: "Software",
+            body: (
+              <DetailPoints>
+                <Point lead="Flight firmware">
+                  Programmed <Hl>Adafruit CLUE</Hl> flight firmware to log{" "}
+                  <Hl>CosmicWatch</Hl> pulse counts alongside onboard sensor
+                  data at fixed sampling intervals.
+                </Point>
+                <Point lead="DAQ platform">
+                  Built data acquisition on <Hl>Raspberry Pi</Hl>, then migrated
+                  the stack to <Hl>ESP32</Hl> for lower power draw and reduced
+                  payload mass.
+                </Point>
+                <Point lead="Clock synchronization">
+                  Implemented real-time clock synchronization across data
+                  collection boxes, yielding time-aligned particle-count and
+                  atmospheric records for cross-instrument comparison.
+                </Point>
+                <Point lead="Sensor integration">
+                  Interfaced <Hl>BME280</Hl> (temperature, humidity, pressure),{" "}
+                  <Hl>MPU6050</Hl> (accelerometer/gyroscope), and{" "}
+                  <Hl>GT-U7 NEO-6M GPS</Hl> over <Hl>I2C</Hl> and <Hl>UART</Hl>,
+                  with buffered writes to onboard storage for flight-duration
+                  logging.
+                </Point>
+                <Point lead="Telemetry and tracking">
+                  Configured <Hl>APRS</Hl> telemetry (<Hl>MicroTrak 1000</Hl>,{" "}
+                  <Hl>LightAPRS 1.0</Hl>) and <Hl>SPOT</Hl> satellite tracking
+                  for live position reporting and payload recovery.
+                </Point>
+                <Point lead="Flight prediction">
+                  Ran pre-launch flight-path predictions to select launch sites
+                  and forecast landing zones within FAA constraints.
+                </Point>
+                <Point lead="Data analysis">
+                  Processed multi-launch datasets in <Hl>Python</Hl>, converting
+                  raw counts to count rate versus altitude and resolving the
+                  Regener-Pfotzer maximum near 67,000 ft, with a secondary
+                  maximum near 74,000 ft and a sharp decline after burst at
+                  roughly 98,000 ft.
+                </Point>
+                <Point lead="Angular-dependence study">
+                  Compared Geiger-counter channels across launches to test
+                  angular dependence &mdash; GC1 and GC3 mounted vertically, GC2
+                  at 60 degrees from vertical &mdash; finding count rates
+                  consistent with a vertical-orientation enhancement.
+                </Point>
+              </DetailPoints>
+            ),
+          },
+          {
+            heading: "Hardware",
+            body: (
+              <DetailPoints>
+                <Point lead="Payload boxes">
+                  Designed and fabricated data-collection boxes housing
+                  rechargeable <Hl>Li-ion</Hl> packs, sensor stacks, and{" "}
+                  <Hl>CosmicWatch</Hl> detectors, with wiring harnesses
+                  optimized for minimal mass and modular sensor expansion.
+                </Point>
+                <Point lead="Thermal enclosure">
+                  Engineered closed-cell foam enclosures for passive thermal
+                  insulation against stratospheric temperatures near minus 60 C,
+                  doubling as buoyant flotation for water landings and as impact
+                  absorption on descent.
+                </Point>
+                <Point lead="Detector integration">
+                  Integrated <Hl>CosmicWatch</Hl> detectors (5&times;5&times;1
+                  cm plastic scintillator coupled to a <Hl>SiPM</Hl>) and{" "}
+                  <Hl>GMC-500</Hl> Geiger counters into the payload train.
+                </Point>
+                <Point lead="Flight-train assembly">
+                  Assembled and balanced the flight train &mdash; latex weather
+                  balloon, inline parachute, and secured payload boxes &mdash;
+                  rigged to FAA guidelines.
+                </Point>
+                <Point lead="Launch and recovery">
+                  Ran early-morning launch operations to maximize daylight
+                  recovery, and recovered payloads in the field across
+                  Pennsylvania launch sites (Hershey and Newville).
+                </Point>
+              </DetailPoints>
+            ),
+          },
         ]}
       />
     ),
@@ -162,16 +350,85 @@ const RESEARCH: Project[] = [
   {
     label: "Data Acquisition for Moore Foundation",
     tag: "Physics Education",
-    duration: "3 months",
+    // Jun. 2024 – Sep. 2024, inclusive
+    duration: "4 months",
     description:
-      "Collected physics faculty data from the web, contributing to a Moore Foundation project.",
+      "Data acquisition for a Moore Foundation project, advised by Dr. Eric Brewe.",
+    content: (
+      <ResearchPanel>
+        Built Python web scrapers with Beautiful Soup to collect physics-faculty
+        research interests across Ph.D.-granting U.S. universities.
+      </ResearchPanel>
+    ),
   },
   {
     label: "Enron Corpus and Model Lineage",
     tag: "Data Science",
     duration: "3 months",
     description:
-      "Collected Enron data to study the lineage of general-purpose AI systems.",
+      "Studying the lineage of general-purpose AI systems through the Enron corpus.",
+    content: (
+      <ResearchPanel>
+        Developed and customized GPT models to navigate large-scale Enron email
+        datasets, enabling targeted information extraction.
+      </ResearchPanel>
+    ),
+  },
+];
+
+// Talks and posters, newest first. Titles quoted verbatim from the CV.
+const PRESENTATIONS: Presentation[] = [
+  {
+    date: "May 2025",
+    format: "Talk",
+    venue: "2025 Scientific Ballooning Technologies Workshop",
+    location: "University of Minnesota, MN, USA",
+    title:
+      "“Mapping the Regener-Pfotzer Maximum: A Global Collaboration in Cosmic-Ray Astrophysics”",
+  },
+  {
+    date: "Apr. 2025",
+    format: "Talk & poster",
+    venue: "ASURS — A Symposium for Undergraduate Research & Scholarship",
+    location: "Drexel University, Philadelphia, PA, USA",
+    title: "HERA — High-altitude Research in Astrophysics",
+  },
+  {
+    date: "Nov. 2024",
+    format: "Talk",
+    venue: "American Physical Society Mid-Atlantic Section Annual Meeting",
+    location: "Temple University, Philadelphia, PA, USA",
+    title:
+      "“Preliminary Results for the High-altitude Research in Astrophysics Project”",
+  },
+  {
+    date: "Sep. 2024",
+    format: "Talk",
+    venue: "Nerd Night, Undergraduate Research & Enrichment Programs (UREP)",
+    location: "Drexel University, Philadelphia, PA, USA",
+    title: "“Neutrino Science with the Deep Underground Neutrino Experiment”",
+  },
+  {
+    date: "Sep. 2024",
+    format: "Poster",
+    venue: "STAR Poster Presentation",
+    location: "Drexel University, Philadelphia, PA, USA",
+    title: "“Studying neutrinos with the Deep Underground Neutrino Experiment”",
+  },
+  {
+    date: "Nov. 2023",
+    format: "Poster",
+    venue: "Start Talking Science",
+    location: "Science History Institute, Philadelphia, PA, USA",
+    title: "“Neutrino Science with the Deep Underground Neutrino Experiment”",
+  },
+  {
+    date: "Sep. 2023",
+    format: "Talk",
+    venue: "Drexel Particle Group Meeting",
+    location: "Drexel University, Philadelphia, PA, USA",
+    title:
+      "“Understanding neutrino activity through Muon histogram analysis with the Deep Underground Neutrino Experiment”",
   },
 ];
 
@@ -218,6 +475,11 @@ export default function ProjectsPage() {
               />
             ))}
           </div>
+        </section>
+
+        <section className="flex flex-col gap-4">
+          <SectionHeading>Presentations</SectionHeading>
+          <PresentationsList items={PRESENTATIONS} />
         </section>
 
         {/* Closes the page off, as on the hobbies and awards pages. */}

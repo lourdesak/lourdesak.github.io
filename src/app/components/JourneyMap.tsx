@@ -8,15 +8,15 @@ import NamePin from "./NamePin";
  * timeline of every place Lourdes has lived, newest at the top, walked back to
  * her birthplace at the bottom. Each stop's `years` is how long she stayed
  * before leaving, and it sets the drop to the next stop: one month in Honolulu
- * barely registers, eleven years in Tirunelveli draws the long fall.
+ * barely registers, ten years in Tirunelveli draws the long fall.
  *
  * Straight rail, one column of ticks, one column of labels — the two never
  * cross, so nothing overlaps. On open the rail draws itself top-down and the
  * stations light up in order behind it.
  *
  *   22 years old. Philadelphia 4 + Sivakasi 1 + Bangalore 5 + Sivakasi 1 = 11.
- *   Honolulu is ~1 month so far. Tuticorin is the point she was born at.
- *   22 - 11 - ~0 (Honolulu) => ~11 years in Tirunelveli before that.
+ *   Honolulu is ~1 month so far. Tuticorin is her birthplace, ~1 year there.
+ *   22 - 11 - ~0 (Honolulu) - 1 (Tuticorin) => ~10 years in Tirunelveli.
  */
 
 type Stop = { name: string; note: string; years: number };
@@ -28,8 +28,8 @@ const STOPS: Stop[] = [
   { name: "Sivakasi", note: "1 yr", years: 1 },
   { name: "Bangalore", note: "5 yrs", years: 5 },
   { name: "Sivakasi", note: "1 yr", years: 1 },
-  { name: "Tirunelveli", note: "11 yrs", years: 11 },
-  { name: "Tuticorin", note: "born", years: 0 },
+  { name: "Tirunelveli", note: "10 yrs", years: 10 },
+  { name: "Tuticorin", note: "born · 1 yr", years: 1 },
 ];
 
 // The day Lourdes landed in Honolulu. The "how long so far" note counts up from
