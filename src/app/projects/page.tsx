@@ -494,8 +494,8 @@ export default function ProjectsPage() {
           </div>
         </section>
 
-        <section className="flex flex-col gap-4">
-          <SectionHeading>Presentations</SectionHeading>
+        <section className="flex flex-col gap-6">
+          <SectionHeading pill>Presentations</SectionHeading>
           <PresentationsList items={PRESENTATIONS} />
         </section>
 
