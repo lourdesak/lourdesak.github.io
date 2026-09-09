@@ -26,10 +26,13 @@ export default function ProjectCard({
   project,
   index,
   mediaHeight = 260,
+  sheen = true,
 }: {
   project: Project;
   index: number;
   mediaHeight?: number;
+  /** the band of light swept across on hover; off for the flat research cards */
+  sheen?: boolean;
 }) {
   return (
     <article
@@ -81,7 +84,7 @@ export default function ProjectCard({
         )}
       </div>
 
-      <span className={css.sheen} aria-hidden="true" />
+      {sheen && <span className={css.sheen} aria-hidden="true" />}
     </article>
   );
 }

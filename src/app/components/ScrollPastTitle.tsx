@@ -2,27 +2,30 @@
 
 import { useEffect } from "react";
 
-const DURATION_MS = 1000;
-
 // Fired once the glide has come to rest, so anything that should only start
 // after the page has settled can wait for it instead of guessing a delay.
 export const SCROLL_SETTLED_EVENT = "scroll-past-title:settled";
+
+// Fallback for when the settle can't be observed directly — long enough to
+// cover the browser's own smooth-scroll on a full title's worth of travel.
+const SETTLE_FALLBACK_MS = 1400;
 
 function announceSettled() {
   window.dispatchEvent(new Event(SCROLL_SETTLED_EVENT));
 }
 
-// Ease-in-out cubic: slow start, fast middle, slow finish.
-function ease(t: number) {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-}
-
-// Lands the page like any other page (static, scrolled to top, title
-// visible), then glides the page down over DURATION_MS so `targetId` ends up
-// at the top, tucking the page title behind the fixed nav bar.
-//
-// `offset` is the gap left above the target, which needs to clear the fixed
-// nav in the top-left corner.
+/**
+ * Lands the page like any other page (static, scrolled to top, title visible),
+ * then lets the browser smooth-scroll `targetId` up under the fixed nav.
+ *
+ * The travel is the browser's own smooth scroll rather than a hand-driven
+ * rAF loop: it runs on the compositor, so it stays smooth under load, and it
+ * hands control straight back the instant the reader scrolls themselves
+ * instead of fighting them frame by frame.
+ *
+ * `offset` is the gap left above the target, which needs to clear the fixed
+ * nav in the top-left corner.
+ */
 export default function ScrollPastTitle({
   targetId,
   offset = 96,
@@ -31,39 +34,52 @@ export default function ScrollPastTitle({
   offset?: number;
 }) {
   useEffect(() => {
-    let frame: number;
-    let startTime: number | null = null;
-    let startY = 0;
-    let targetY = 0;
+    let settleTimer: ReturnType<typeof setTimeout>;
+    let settled = false;
+
+    function finish() {
+      if (settled) return;
+      settled = true;
+      window.removeEventListener("scrollend", finish);
+      clearTimeout(settleTimer);
+      announceSettled();
+    }
 
     // Wait a frame: Next resets scroll to the top on navigation, and web fonts
     // can still be settling, either of which would throw off the measurement.
-    frame = requestAnimationFrame(() => {
+    const frame = requestAnimationFrame(() => {
       const target = document.getElementById(targetId);
       if (!target) {
-        announceSettled(); // nothing to scroll to, so we are already settled
+        finish(); // nothing to scroll to, so we are already settled
         return;
       }
-      startY = window.scrollY;
-      targetY = Math.max(
+
+      const targetY = Math.max(
         0,
         target.getBoundingClientRect().top + window.scrollY - offset
       );
 
-      function step(now: number) {
-        if (startTime === null) startTime = now;
-        const t = Math.min(1, (now - startTime) / DURATION_MS);
-        window.scrollTo(0, startY + (targetY - startY) * ease(t));
-        if (t < 1) {
-          frame = requestAnimationFrame(step);
-        } else {
-          announceSettled();
-        }
+      if (Math.abs(targetY - window.scrollY) < 4) {
+        finish();
+        return;
       }
-      frame = requestAnimationFrame(step);
+
+      const reduce = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches;
+      window.scrollTo({ top: targetY, behavior: reduce ? "auto" : "smooth" });
+
+      // `scrollend` fires when the smooth scroll — or a reader who takes over
+      // mid-glide — comes to rest; the timer covers browsers without it.
+      window.addEventListener("scrollend", finish, { once: true });
+      settleTimer = setTimeout(finish, reduce ? 0 : SETTLE_FALLBACK_MS);
     });
 
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scrollend", finish);
+      clearTimeout(settleTimer);
+    };
   }, [targetId, offset]);
 
   return null;

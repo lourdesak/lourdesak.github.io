@@ -198,7 +198,7 @@ function SimulationModal({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={`${zoomed.alt} — enlarged`}
+        aria-label={`${zoomed.alt}, enlarged`}
         onClick={() => setZoomed(null)}
         style={{ animation: "fade-in 150ms ease-out both" }}
         className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm sm:p-10"

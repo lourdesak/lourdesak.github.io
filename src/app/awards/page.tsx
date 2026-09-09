@@ -57,10 +57,9 @@ const AWARDS: Award[] = [
     kind: "grant",
   },
   {
-    // East-West Center Leadership Exchange Advanced Degree (LEAD) Scholar
-    // Program — for UH Mānoa graduate students admitted to the EWC's
+    // For UH Mānoa graduate students admitted to the East-West Center's
     // international scholar community. Externally/self-funded, so no amount.
-    title: "LEAD Scholar",
+    title: "Leadership Exchange Advanced Degree Scholar",
     note: "East-West Center (EWC)",
     period: "Aug. 2026 – present",
     kind: "honour",
@@ -98,7 +97,7 @@ export default function AwardsPage() {
     <PageShell title="Awards">
       <div className="flex w-full flex-col gap-8 pb-24">
         <p className="mt-6 max-w-full text-pretty text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-          Research funding and honours, {AWARDS.length} in all — including{" "}
+          Research funding and honours, {AWARDS.length} in all, including{" "}
           <span className="tabular-nums text-[#8a7a00]">{cash(research)}</span>{" "}
           in awarded research support
           {scholarship > 0 && (

@@ -21,6 +21,10 @@ export default function BookRecommendationsLabel({
 }) {
   const ref = useRef<HTMLParagraphElement>(null);
   const [play, setPlay] = useState(false);
+  // Once the banner has slid off to the right it is taken out of the tree
+  // altogether — left in place it parks a full viewport-width off-screen and
+  // widens the page, which shows up as horizontal drift while scrolling.
+  const [gone, setGone] = useState(false);
 
   const reducedMotion = useSyncExternalStore(
     subscribeNoop,
@@ -52,6 +56,8 @@ export default function BookRecommendationsLabel({
     return () => observer.disconnect();
   }, [reducedMotion]);
 
+  if (gone) return null;
+
   const className = reducedMotion
     ? "opacity-100"
     : play
@@ -61,6 +67,9 @@ export default function BookRecommendationsLabel({
   return (
     <p
       ref={ref}
+      onAnimationEnd={(e) => {
+        if (e.animationName === "book-rec-banner") setGone(true);
+      }}
       className={`${fontClassName} pointer-events-none absolute left-6 top-36 text-3xl italic tracking-wide text-zinc-800 max-sm:left-4 max-sm:top-24 max-sm:text-xl dark:text-zinc-100 ${className}`}
     >
       Book recommendations

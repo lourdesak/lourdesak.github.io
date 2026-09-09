@@ -94,7 +94,9 @@ export default function PresentationsList({
             }`}
             style={{ "--delay": `${i * STAGGER}ms` } as React.CSSProperties}
           >
-            <div className="group -mx-4 flex gap-4 rounded-lg px-4 py-5 transition-colors hover:bg-zinc-100/60 dark:hover:bg-zinc-900/50">
+            <div
+              className={`${css.hit} group relative -mx-4 flex gap-4 overflow-hidden rounded-lg px-4 py-5 transition-colors hover:bg-zinc-100/60 dark:hover:bg-zinc-900/50`}
+            >
               {/* format mark: speech panel for a talk, board for a poster */}
               <span className="mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-full border border-zinc-300 text-zinc-500 transition-colors group-hover:border-zinc-400 group-hover:text-zinc-700 dark:border-zinc-700 dark:text-zinc-400 dark:group-hover:border-zinc-500 dark:group-hover:text-zinc-200">
                 <span className="h-[18px] w-[18px]">
@@ -126,6 +128,8 @@ export default function PresentationsList({
                   {p.location}
                 </span>
               </span>
+
+              <span className={css.sheen} aria-hidden="true" />
             </div>
           </li>
         );

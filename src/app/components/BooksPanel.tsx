@@ -140,12 +140,18 @@ export default function BooksPanel({ books }: { books: Book[] }) {
     }
 
     let queued = false;
+    let lastProgress = -1;
 
     function apply() {
       queued = false;
       const el = panelRef.current;
       if (!el || !inner) return;
       const progress = zoomProgress(el.getBoundingClientRect().top, window.innerHeight);
+      // Once the panel has fully grown (or hasn't started), progress stops
+      // moving — skip the style writes so the backdrop-blur underneath isn't
+      // asked to re-resolve on every scroll frame for no visible change.
+      if (Math.abs(progress - lastProgress) < 0.002) return;
+      lastProgress = progress;
       const scale = MIN_SCALE + (1 - MIN_SCALE) * progress;
       inner.style.transform = `scale(${scale})`;
       inner.style.opacity = String(0.15 + 0.85 * progress);

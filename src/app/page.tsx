@@ -112,9 +112,9 @@ export default function Home() {
       {/* Corner credit on desktop. On phones it joins the normal flow at the
           very bottom so it can't overlap the bio or sit under Safari's UI. */}
       <footer className="absolute bottom-3 right-4 z-10 max-w-[90vw] text-right text-[10px] leading-relaxed text-zinc-400 max-sm:static max-sm:mx-auto max-sm:mb-8 max-sm:mt-16 max-sm:px-6 max-sm:text-center dark:text-zinc-600">
-        <p>Tuticorin &mdash; visualsbysaud &middot; tntourismoffcl</p>
-        <p>Philadelphia &mdash; Guide to Philly</p>
-        <p>Honolulu &mdash; TripSavvy, part of the People Inc. publishing family</p>
+        <p>Tuticorin: visualsbysaud &middot; tntourismoffcl</p>
+        <p>Philadelphia: Guide to Philly</p>
+        <p>Honolulu: TripSavvy, part of the People Inc. publishing family</p>
       </footer>
     </div>
   );

@@ -147,9 +147,9 @@ const FEATURED: Project[] = [
                   running.
                 </Point>
                 <Point lead="Misalignment finding">
-                  Produced histograms and flux distributions &mdash; including
-                  total muon flux versus z along the beamline &mdash; that
-                  revealed a beam misalignment relative to the monitor axis.
+                  Produced histograms and flux distributions (including total
+                  muon flux versus z along the beamline) that revealed a beam
+                  misalignment relative to the monitor axis.
                 </Point>
                 <Point lead="Correction and impact">
                   Drove a correction through the full simulation chain,
@@ -247,6 +247,10 @@ const FEATURED: Project[] = [
                   for joint flights with collaborators across several U.S.
                   states and Australia.
                 </Point>
+                <Point lead="Grant support">
+                  Helped refine NSF grant submissions for the ballooning
+                  project.
+                </Point>
                 <Point lead="Outreach">
                   Communicated results through a poster presentation and
                   hands-on demonstrations of detector operation to student and
@@ -282,9 +286,10 @@ const FEATURED: Project[] = [
                   logging.
                 </Point>
                 <Point lead="Telemetry and tracking">
-                  Configured <Hl>APRS</Hl> telemetry (<Hl>MicroTrak 1000</Hl>,{" "}
+                  Used <Hl>APRS</Hl> telemetry (<Hl>MicroTrak 1000</Hl>,{" "}
                   <Hl>LightAPRS 1.0</Hl>) and <Hl>SPOT</Hl> satellite tracking
-                  for live position reporting and payload recovery.
+                  data for live position tracking, payload recovery, and
+                  post-flight analysis.
                 </Point>
                 <Point lead="Flight prediction">
                   Ran pre-launch flight-path predictions to select launch sites
@@ -299,9 +304,9 @@ const FEATURED: Project[] = [
                 </Point>
                 <Point lead="Angular-dependence study">
                   Compared Geiger-counter channels across launches to test
-                  angular dependence &mdash; GC1 and GC3 mounted vertically, GC2
-                  at 60 degrees from vertical &mdash; finding count rates
-                  consistent with a vertical-orientation enhancement.
+                  angular dependence (GC1 and GC3 mounted vertically, GC2 at 60
+                  degrees from vertical), finding count rates consistent with a
+                  vertical-orientation enhancement.
                 </Point>
               </DetailPoints>
             ),
@@ -328,9 +333,9 @@ const FEATURED: Project[] = [
                   <Hl>GMC-500</Hl> Geiger counters into the payload train.
                 </Point>
                 <Point lead="Flight-train assembly">
-                  Assembled and balanced the flight train &mdash; latex weather
-                  balloon, inline parachute, and secured payload boxes &mdash;
-                  rigged to FAA guidelines.
+                  Assembled and balanced the flight train (latex weather
+                  balloon, inline parachute, and secured payload boxes) rigged
+                  to FAA guidelines.
                 </Point>
                 <Point lead="Launch and recovery">
                   Ran early-morning launch operations to maximize daylight
@@ -389,9 +394,9 @@ const PRESENTATIONS: Presentation[] = [
   {
     date: "Apr. 2025",
     format: "Talk & poster",
-    venue: "ASURS — A Symposium for Undergraduate Research & Scholarship",
+    venue: "ASURS: A Symposium for Undergraduate Research & Scholarship",
     location: "Drexel University, Philadelphia, PA, USA",
-    title: "HERA — High-altitude Research in Astrophysics",
+    title: "HERA: High-altitude Research in Astrophysics",
   },
   {
     date: "Nov. 2024",
@@ -472,6 +477,7 @@ export default function ProjectsPage() {
                 key={project.label}
                 project={project}
                 index={FEATURED.length + i}
+                sheen={false}
               />
             ))}
           </div>

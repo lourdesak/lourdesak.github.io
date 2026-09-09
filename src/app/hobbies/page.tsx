@@ -78,7 +78,7 @@ const BOOKS = [
     author: "Michio Kaku",
     field: "Science",
     description:
-      "A physicist's tour of humanity's next frontiers — terraforming Mars, interstellar travel, and the long odds of immortality.",
+      "A physicist's tour of humanity's next frontiers: terraforming Mars, interstellar travel, and the long odds of immortality.",
     cover: "/books/future-of-humanity.jpg",
   },
   {
@@ -118,7 +118,7 @@ const BOOKS = [
     author: "Albert Camus",
     field: "Philosophy",
     description:
-      "Camus's essay on the absurd — why life's lack of inherent meaning isn't a reason for despair, but for defiance.",
+      "Camus's essay on the absurd, and why life's lack of inherent meaning isn't a reason for despair, but for defiance.",
     cover: "/books/myth-of-sisyphus.jpg",
   },
   {
@@ -126,7 +126,7 @@ const BOOKS = [
     author: "Charles Seife",
     field: "Science",
     description:
-      "A history of the number zero and the void it stands for — the idea philosophers feared and mathematicians needed.",
+      "A history of the number zero and the void it stands for: the idea philosophers feared and mathematicians needed.",
     cover: "/books/zero.jpg",
   },
   {
@@ -134,7 +134,7 @@ const BOOKS = [
     author: "Erwin Schrödinger",
     field: "Physics",
     description:
-      "A physicist's lecture-turned-essay asking how living matter escapes decay — the book that pointed a generation of physicists toward biology.",
+      "A physicist's lecture-turned-essay asking how living matter escapes decay; the book that pointed a generation of physicists toward biology.",
     cover: "/books/what-is-life.jpg",
     // title runs to the top edge — anchor the crop up so it isn't clipped
     coverPosition: "50% 6%",
@@ -192,7 +192,7 @@ export default function HobbiesPage() {
       */}
       <section
         id="reading"
-        className="relative flex min-h-screen w-full items-center justify-center bg-zinc-50 px-6 py-16 dark:bg-black"
+        className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-zinc-50 px-6 py-16 dark:bg-black"
       >
         <BookRecommendationsLabel fontClassName={playfairDisplay.className} />
         <BooksPanel books={BOOKS} />

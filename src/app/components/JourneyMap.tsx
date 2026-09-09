@@ -217,7 +217,7 @@ export default function JourneyMap() {
       <ul className="sr-only">
         {STOPS.map((s, i) => (
           <li key={i} suppressHydrationWarning>
-            {s.name} — {noteFor(i)}
+            {s.name}, {noteFor(i)}
           </li>
         ))}
       </ul>
