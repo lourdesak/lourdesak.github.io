@@ -29,6 +29,20 @@ const NEUTRINO_MEDIA = [
   },
 ];
 
+// Recolours a skill or tool name in place — no background, just the word.
+function Hl({ children }: { children: React.ReactNode }) {
+  return <span className="text-yellow-300">{children}</span>;
+}
+
+// The bullet list that fills each section panel in the Stopping-Muon detail.
+function DetailPoints({ children }: { children: React.ReactNode }) {
+  return (
+    <ul className="flex flex-col gap-3 text-left text-[13px] leading-relaxed text-zinc-300 marker:text-[#8a7a00]/70">
+      {children}
+    </ul>
+  );
+}
+
 const FEATURED: Project[] = [
   {
     label: "Stopping-Muon Detector Simulation",
@@ -49,9 +63,68 @@ const FEATURED: Project[] = [
               src: "/posters/dune.jpg",
               alt: "Conference poster: Neutrino Physics with the Deep Underground Neutrino Experiment",
             },
+            body: (
+              <DetailPoints>
+                <li>
+                  Conducted a literature review of long-baseline oscillation
+                  physics and LBNF beamline design to ground subsequent analysis
+                  work.
+                </li>
+                <li>
+                  Configured Fermilab computing accounts and operated in a{" "}
+                  <Hl>Linux</Hl>/<Hl>bash</Hl> environment for remote job
+                  submission and data access.
+                </li>
+                <li>
+                  Learned the collaboration&apos;s simulation and validation
+                  workflow end to end.
+                </li>
+              </DetailPoints>
+            ),
           },
-          { heading: "Muon Monitors" },
-          { heading: "Geant-4 Simulation" },
+          {
+            heading: "Muon Monitors",
+            body: (
+              <DetailPoints>
+                <li>
+                  Analyzed simulated muon flux across three downstream monitors
+                  using <Hl>C++</Hl> and <Hl>ROOT</Hl>.
+                </li>
+                <li>
+                  Generated 2D flux heatmaps to characterize beam profiles, then
+                  applied z cuts to isolate contributions by depth.
+                </li>
+                <li>
+                  Produced histograms and flux distributions that identified a
+                  beam misalignment relative to the monitor axis.
+                </li>
+                <li>
+                  Drove a correction propagated through the full simulation
+                  chain, improving beam modeling fidelity.
+                </li>
+              </DetailPoints>
+            ),
+          },
+          {
+            heading: "Geant-4 Simulation",
+            body: (
+              <DetailPoints>
+                <li>
+                  Integrated simplified detector geometry into <Hl>g4lbnf</Hl>,
+                  the <Hl>Geant4</Hl> simulation of the LBNF beamline.
+                </li>
+                <li>
+                  Built a stopping-muon detector simulation from scratch,
+                  defining geometry, materials, physics lists, and sensitive
+                  detector readout.
+                </li>
+                <li>
+                  Developed the simulation into <Hl>MARGARITA</Hl>, the basis of
+                  an undergraduate senior thesis.
+                </li>
+              </DetailPoints>
+            ),
+          },
         ]}
       />
     ),

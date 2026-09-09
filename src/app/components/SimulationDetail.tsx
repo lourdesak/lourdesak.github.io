@@ -19,6 +19,8 @@ type Section = {
    * the framed heading panel drops to the bottom half.
    */
   poster?: { src: string; alt: string };
+  /** Fills the panel beneath the heading — the space "left for material". */
+  body?: React.ReactNode;
 };
 
 type SimulationDetailProps = {
@@ -151,7 +153,7 @@ function SimulationModal({
             distinct, stretched to fill the height. A column with a poster
             shows it bare above that panel, no frame of its own. */}
         <div className="grid flex-1 grid-cols-1 gap-6 overflow-y-auto p-7 sm:grid-cols-3 sm:p-9">
-          {sections.map(({ heading, poster }) => (
+          {sections.map(({ heading, poster, body }) => (
             <div key={heading} className="flex min-h-[320px] flex-col gap-6">
               {poster && (
                 <button
@@ -181,7 +183,9 @@ function SimulationModal({
                 </div>
 
                 {/* Space left for material. */}
-                <div className="flex-1 bg-black" />
+                <div className="min-h-0 flex-1 overflow-y-auto bg-black px-4 py-5">
+                  {body}
+                </div>
               </section>
             </div>
           ))}
