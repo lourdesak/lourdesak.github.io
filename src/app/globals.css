@@ -201,6 +201,43 @@ body {
 }
 
 /*
+ * The first-time "click here" nudge on the projects page (see ClickHint.tsx):
+ * a hand tapping down in place while a ring pulses outward from underneath
+ * it, the two timed together so the ring appears to originate from the tap.
+ */
+@keyframes hand-hint-tap {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  18% {
+    transform: translateY(7px) scale(0.92);
+  }
+  36% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes hand-hint-ripple {
+  0%,
+  14% {
+    transform: scale(0.35);
+    opacity: 0;
+  }
+  22% {
+    opacity: 0.55;
+  }
+  60% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
+
+/*
  * The intro for a featured project's detail panels. On open the subheadings
  * come in first, evenly spaced with their sentences still collapsed, each
  * easing in a touch enlarged and then settling to its resting size. Once they

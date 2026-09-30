@@ -35,14 +35,14 @@ const NEUTRINO_MEDIA = [
 
 // Recolours a skill or tool name in place — no background, just the word.
 function Hl({ children }: { children: React.ReactNode }) {
-  return <span className="text-yellow-300">{children}</span>;
+  return <span className="text-amber-700 dark:text-yellow-300">{children}</span>;
 }
 
 // The titled-bullet list that fills each section panel of a project detail.
 // `detail-points` drives the open-time intro animation (see globals.css).
 function DetailPoints({ children }: { children: React.ReactNode }) {
   return (
-    <ul className="detail-points flex flex-col gap-4 text-left text-[13px] text-zinc-300">
+    <ul className="detail-points flex flex-col gap-4 text-left text-[13px] text-zinc-600 dark:text-zinc-300">
       {children}
     </ul>
   );
@@ -64,14 +64,14 @@ function Point({
         className="mt-[9px] h-px w-3 shrink-0 bg-[#8a7a00]/80"
       />
       <div>
-        <p className="detail-lead font-bold tracking-tight text-zinc-100">
+        <p className="detail-lead font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
           {lead}
         </p>
         {/* Grid wrapper collapses to zero height during the intro so the
             subheadings start evenly spaced, then opens to push them apart. */}
         <div className="detail-body-wrap grid">
           <div className="overflow-hidden">
-            <p className="detail-body pt-1 text-[13.5px] leading-relaxed text-zinc-400">
+            <p className="detail-body pt-1 text-[13.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">
               {children}
             </p>
           </div>
@@ -94,6 +94,7 @@ const FEATURED: Project[] = [
         media={NEUTRINO_MEDIA}
         title="Stopping-Muon Detector Simulation"
         tag="Neutrino Physics"
+        hint
         sections={[
           {
             heading: "DUNE",
@@ -440,14 +441,17 @@ const PRESENTATIONS: Presentation[] = [
 function SectionHeading({
   children,
   pill = false,
+  sans = false,
 }: {
   children: React.ReactNode;
   /** wrap the heading text in the same gold oval the tag pills use */
   pill?: boolean;
+  /** set in the body sans, as the awards page is, rather than Playfair italic */
+  sans?: boolean;
 }) {
   return (
     <h2
-      className={`${playfairDisplay.className} text-2xl italic tracking-wide text-zinc-800 dark:text-zinc-100 ${
+      className={`${sans ? "font-sans" : `${playfairDisplay.className} italic`} text-2xl tracking-wide text-zinc-800 dark:text-zinc-100 ${
         pill
           ? "inline-flex self-start rounded-full border border-[#8a7a00] px-5 py-1.5"
           : ""
@@ -463,7 +467,7 @@ export default function ProjectsPage() {
     <PageShell title="Projects">
       <div className="flex w-full flex-col gap-16 pb-24 pt-6">
         <section className="flex flex-col gap-6">
-          <SectionHeading pill>Featured Research Projects</SectionHeading>
+          <SectionHeading pill sans>Featured Research Projects</SectionHeading>
           {/* The featured project runs the full width rather than sitting in a
               half-width cell — being featured should look like something. */}
           <div className="grid grid-cols-1 gap-8">
@@ -495,7 +499,7 @@ export default function ProjectsPage() {
         </section>
 
         <section className="flex flex-col gap-6">
-          <SectionHeading pill>Presentations</SectionHeading>
+          <SectionHeading pill sans>Presentations</SectionHeading>
           <PresentationsList items={PRESENTATIONS} />
         </section>
 

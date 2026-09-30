@@ -102,6 +102,29 @@ const STRIKE_GLOW = [255, 184, 54] as const;
 const INK_ON_DARK = [255, 255, 255] as const;
 const INK_ON_LIGHT = [39, 39, 42] as const; // zinc-800
 
+// Light mode only: once the fragments are out and the detector wall is due,
+// the page's own light background isn't what these gold tubes were designed
+// to sit on, so a backdrop the same near-black as the dark theme's page
+// (#0a0a0a) rises in behind them, timed off the same wallOpacity ramp the
+// wall itself fades in and out on. Dark mode never needs this — its page is
+// already this colour.
+const BURST_BACKDROP: RGB = [10, 10, 10];
+
+// The hero text riding the same backdrop above rides the same ramp: each
+// entry is a DOM element's ordinary light-mode ink and the dark-mode ink it
+// would carry anyway under `dark:`, so at bgT 0 it's untouched and at bgT 1
+// it reads exactly as it would if the page really had switched themes.
+// Marked with `data-burst-text` in page.tsx / NameWave.tsx rather than a ref
+// here, since this component doesn't own that markup.
+const BURST_TEXT_TARGETS: Record<string, { light: RGB; dark: RGB }> = {
+  name: { light: [0, 0, 0], dark: [250, 250, 250] }, // text-black / dark:text-zinc-50
+  bio: { light: [82, 82, 91], dark: [161, 161, 170] }, // zinc-600 / zinc-400
+  coding: { light: [82, 82, 91], dark: [161, 161, 170] }, // zinc-600 / zinc-400
+  "links-label": { light: [113, 113, 122], dark: [113, 113, 122] }, // zinc-500 both ways
+  "links-list": { light: [63, 63, 70], dark: [212, 212, 216] }, // zinc-700 / zinc-300
+  footer: { light: [161, 161, 170], dark: [82, 82, 91] }, // zinc-400 / zinc-600
+};
+
 type Vec = { x: number; y: number };
 
 type SphereLine =
@@ -650,11 +673,29 @@ export default function ParticleCollision() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Neutral ink for the spheres and the ring, kept in step with the theme.
-    let ink: RGB = resolvedTheme() === "dark" ? INK_ON_DARK : INK_ON_LIGHT;
+    // Neutral ink for the spheres and the ring, kept in step with the theme,
+    // and the theme itself for the burst backdrop below.
+    let theme = resolvedTheme();
+    let ink: RGB = theme === "dark" ? INK_ON_DARK : INK_ON_LIGHT;
     const stopThemeWatch = onThemeChange(() => {
-      ink = resolvedTheme() === "dark" ? INK_ON_DARK : INK_ON_LIGHT;
+      theme = resolvedTheme();
+      ink = theme === "dark" ? INK_ON_DARK : INK_ON_LIGHT;
     });
+
+    // The hero text sharing the burst backdrop's fade, cached once so the
+    // per-frame work below is just a style write, not a DOM query.
+    const textTargets = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-burst-text]"),
+    ).flatMap((el) => {
+      const pair = el.dataset.burstText && BURST_TEXT_TARGETS[el.dataset.burstText];
+      return pair ? [{ el, ...pair }] : [];
+    });
+    function tintText(t: number) {
+      for (const target of textTargets) {
+        if (t > 0.001) target.el.style.color = rgba(mixRGB(target.light, target.dark, t), 1);
+        else target.el.style.removeProperty("color");
+      }
+    }
 
     let width = 0;
     let height = 0;
@@ -830,18 +871,6 @@ export default function ParticleCollision() {
         }
       } else if (phase.kind === "bursting") {
         phase.age += dt;
-        const ringT = Math.min(phase.age / RING_LIFE_MS, 1);
-        if (ringT < 1) {
-          // a harder hit throws a brighter, wider shockwave — this is where the
-          // extra energy mostly shows, since it costs no dwell time
-          const ringAlpha = Math.min(0.75, 0.5 * phase.energy);
-          const ringSpread = 90 * (1 + (phase.energy - 1) * 0.45);
-          ctx!.strokeStyle = rgba(ink, ringAlpha * (1 - ringT));
-          ctx!.lineWidth = 1.5;
-          ctx!.beginPath();
-          ctx!.arc(phase.origin.x, phase.origin.y, 6 + ringT * ringSpread, 0, Math.PI * 2);
-          ctx!.stroke();
-        }
 
         const wallActive = phase.age >= phase.wallDelay;
 
@@ -862,6 +891,33 @@ export default function ParticleCollision() {
             );
           }
         }
+
+        // Riding the same ramp as the wall itself, so the backdrop and the
+        // tubes it's hosting arrive and leave together.
+        const bgT = theme === "light" ? wallOpacity : 0;
+        if (bgT > 0) {
+          ctx!.fillStyle = rgba(BURST_BACKDROP, bgT);
+          ctx!.fillRect(0, 0, width, height);
+        }
+        tintText(bgT);
+        // The fragments (and the shockwave ring, for consistency) need to stay
+        // visible as their background goes from light to near-black, so their
+        // ink rides the same ramp toward the dark theme's white.
+        const frameInk = bgT > 0 ? mixRGB(ink, INK_ON_DARK, bgT) : ink;
+
+        const ringT = Math.min(phase.age / RING_LIFE_MS, 1);
+        if (ringT < 1) {
+          // a harder hit throws a brighter, wider shockwave — this is where the
+          // extra energy mostly shows, since it costs no dwell time
+          const ringAlpha = Math.min(0.75, 0.5 * phase.energy);
+          const ringSpread = 90 * (1 + (phase.energy - 1) * 0.45);
+          ctx!.strokeStyle = rgba(frameInk, ringAlpha * (1 - ringT));
+          ctx!.lineWidth = 1.5;
+          ctx!.beginPath();
+          ctx!.arc(phase.origin.x, phase.origin.y, 6 + ringT * ringSpread, 0, Math.PI * 2);
+          ctx!.stroke();
+        }
+
         const activeWall = wallActive ? ensureWall() : null;
         if (activeWall && wallOpacity > 0) {
           ctx!.save();
@@ -917,7 +973,7 @@ export default function ParticleCollision() {
 
           const lifeT = f.age / f.life;
           const opacity = 1 - lifeT;
-          drawWireSphere(ctx!, f.pos.x, f.pos.y, f.size, opacity * 0.9, f.lines, ink, f.angle);
+          drawWireSphere(ctx!, f.pos.x, f.pos.y, f.size, opacity * 0.9, f.lines, frameInk, f.angle);
         }
 
         // struck tubes glow on above the wall, and outlive the fragment that
@@ -949,6 +1005,7 @@ export default function ParticleCollision() {
       window.removeEventListener("resize", resize);
       window.removeEventListener("mousemove", handlePointerMove);
       document.removeEventListener("mouseleave", handlePointerLeave);
+      tintText(0); // release the text back to its ordinary `dark:` colour if we unmount mid-tint
     };
   }, []);
 

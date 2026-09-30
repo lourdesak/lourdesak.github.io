@@ -3,7 +3,12 @@
 import { Fraunces } from "next/font/google";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import ClickHint from "./ClickHint";
 import ImageCarousel, { type CarouselImage } from "./ImageCarousel";
+
+// Persists across visits so the "click here" nudge (see `hint` below) only
+// ever gets one showing, site-wide, rather than once per page load.
+const HINT_STORAGE_KEY = "projects-click-hint-seen";
 
 // A different serif from the Playfair the pages use for their section headings —
 // higher contrast, softer terminals, a touch more character at display size.
@@ -30,6 +35,13 @@ type SimulationDetailProps = {
   tag: string;
   /** the three columns; the space beneath each heading is left for material */
   sections: readonly [Section, Section, Section];
+  /**
+   * Shows a one-time "click here" hand over the media on first hover, to
+   * teach that the media opens a detail pop-up. Set on just the page's first
+   * project — once a visitor has discovered the gesture there, the same
+   * affordance on every other card would just be noise.
+   */
+  hint?: boolean;
 };
 
 /**
@@ -41,11 +53,39 @@ export default function SimulationDetail({
   title,
   tag,
   sections,
+  hint = false,
 }: SimulationDetailProps) {
   const [open, setOpen] = useState(false);
   // The click target below covers the carousel, so the carousel never sees the
   // hover itself — we track it here and drive the cycling through `active`.
   const [hovered, setHovered] = useState(false);
+  // Starts true (hint hidden) so server and first client render agree; the
+  // effect below flips it once we can actually read localStorage.
+  const [hintSeen, setHintSeen] = useState(true);
+
+  useEffect(() => {
+    if (!hint) return;
+    try {
+      setHintSeen(localStorage.getItem(HINT_STORAGE_KEY) === "1");
+    } catch {
+      // localStorage unavailable (private mode, etc.) — leave the hint off.
+    }
+  }, [hint]);
+
+  // Called once the hint has done its job — the hover it appeared for ends,
+  // or the card gets clicked outright — so it never shows again.
+  const dismissHint = () => {
+    if (!hint || hintSeen) return;
+    setHintSeen(true);
+    try {
+      localStorage.setItem(HINT_STORAGE_KEY, "1");
+    } catch {
+      // Nothing to persist to; the in-memory flag above still stops it for
+      // the rest of this visit.
+    }
+  };
+
+  const showHint = hint && hovered && !hintSeen;
 
   return (
     <>
@@ -54,15 +94,23 @@ export default function SimulationDetail({
       {/* Sits over the media so a click anywhere on it opens the pop-up. */}
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          dismissHint();
+          setOpen(true);
+        }}
         onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
+        onMouseLeave={() => {
+          setHovered(false);
+          dismissHint();
+        }}
         aria-haspopup="dialog"
         aria-expanded={open}
         className="absolute inset-0 z-10 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#8a7a00]"
       >
         <span className="sr-only">Open {title} details</span>
       </button>
+
+      {showHint && <ClickHint />}
 
       {open && (
         <SimulationModal
@@ -121,18 +169,18 @@ function SimulationModal({
         onClick={(e) => e.stopPropagation()}
         // Nearly full-screen — it takes over the page the way the card it
         // opened from fills its row.
-        className="relative flex h-[94vh] w-full max-w-7xl flex-col overflow-hidden rounded-3xl bg-black shadow-2xl ring-1 ring-zinc-800"
+        className="relative flex h-[94vh] w-full max-w-7xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-zinc-200 dark:bg-black dark:ring-zinc-800"
       >
         {/* Header, built from the same pieces as the project card: serif title
             plus the gold field pill. */}
-        <div className="flex items-start justify-between gap-4 border-b border-zinc-800 px-7 py-6 sm:px-9">
+        <div className="flex items-start justify-between gap-4 border-b border-zinc-200 px-7 py-6 dark:border-zinc-800 sm:px-9">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <h2
-              className={`${fraunces.className} text-[26px] leading-tight tracking-tight text-zinc-50`}
+              className={`${fraunces.className} text-[26px] leading-tight tracking-tight text-zinc-900 dark:text-zinc-50`}
             >
               {title}
             </h2>
-            <span className="rounded-full border border-[#8a7a00] px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-zinc-300">
+            <span className="rounded-full border border-[#8a7a00] px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-zinc-600 dark:text-zinc-300">
               {tag}
             </span>
           </div>
@@ -141,7 +189,7 @@ function SimulationModal({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="-mr-1 -mt-1 shrink-0 rounded-md p-1.5 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-200"
+            className="-mr-1 -mt-1 shrink-0 rounded-md p-1.5 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
               <path d="M5 5l10 10M15 5L5 15" />
@@ -171,11 +219,11 @@ function SimulationModal({
                 </button>
               )}
 
-              <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl ring-1 ring-zinc-800">
+              <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl ring-1 ring-zinc-200 dark:ring-zinc-800">
                 {/* Heading panel on top. */}
-                <div className="border-b border-zinc-800 bg-white/[0.04] px-4 py-5 text-center">
+                <div className="border-b border-zinc-200 bg-black/[0.03] px-4 py-5 text-center dark:border-zinc-800 dark:bg-white/[0.04]">
                   <h3
-                    className={`${fraunces.className} text-[22px] leading-snug tracking-tight text-zinc-100`}
+                    className={`${fraunces.className} text-[22px] leading-snug tracking-tight text-zinc-900 dark:text-zinc-100`}
                   >
                     {heading}
                   </h3>
@@ -183,7 +231,7 @@ function SimulationModal({
                 </div>
 
                 {/* Space left for material. */}
-                <div className="min-h-0 flex-1 overflow-y-auto bg-black px-4 py-5">
+                <div className="min-h-0 flex-1 overflow-y-auto bg-white px-4 py-5 dark:bg-black">
                   {body}
                 </div>
               </section>

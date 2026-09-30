@@ -18,7 +18,7 @@ export default function Home() {
             <NameWave name="Lourdes Akirtha" />
             <JourneyMap />
           </div>
-          <p className="text-lg text-zinc-600 dark:text-zinc-400">
+          <p data-burst-text="bio" className="text-lg text-zinc-600 dark:text-zinc-400">
             22-year-old physics PhD student at the University of Hawaiʻi at
             Mānoa. My roots trace back to a coastal city in India called{" "}
             <HoverPhoto
@@ -52,17 +52,20 @@ export default function Home() {
             . Reading is my shining hobby and passion, and I&apos;ve contributed
             primarily as a researcher and a mentor across multiple projects. May it be{" "}
             <CodingIconsPopup>
-              <span className="text-zinc-600 dark:text-zinc-400">coding</span>
+              <span data-burst-text="coding" className="text-zinc-600 dark:text-zinc-400">coding</span>
             </CodingIconsPopup>
             , soldering or helping write grants, I try to be adaptable.
           </p>
         </div>
 
         <section className="flex flex-col gap-2">
-          <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+          <h2
+            data-burst-text="links-label"
+            className="text-sm font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500"
+          >
             Links
           </h2>
-          <ul className="flex flex-col gap-1 text-zinc-700 dark:text-zinc-300">
+          <ul data-burst-text="links-list" className="flex flex-col gap-1 text-zinc-700 dark:text-zinc-300">
             <li>
               <a
                 className="underline underline-offset-4 hover:text-black dark:hover:text-white"
@@ -111,7 +114,10 @@ export default function Home() {
 
       {/* Corner credit on desktop. On phones it joins the normal flow at the
           very bottom so it can't overlap the bio or sit under Safari's UI. */}
-      <footer className="absolute bottom-3 right-4 z-10 max-w-[90vw] text-right text-[10px] leading-relaxed text-zinc-400 max-sm:static max-sm:mx-auto max-sm:mb-8 max-sm:mt-16 max-sm:px-6 max-sm:text-center dark:text-zinc-600">
+      <footer
+        data-burst-text="footer"
+        className="absolute bottom-3 right-4 z-10 max-w-[90vw] text-right text-[10px] leading-relaxed text-zinc-400 max-sm:static max-sm:mx-auto max-sm:mb-8 max-sm:mt-16 max-sm:px-6 max-sm:text-center dark:text-zinc-600"
+      >
         <p>Tuticorin: visualsbysaud &middot; tntourismoffcl</p>
         <p>Philadelphia: Guide to Philly</p>
         <p>Honolulu: TripSavvy, part of the People Inc. publishing family</p>

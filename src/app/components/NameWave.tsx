@@ -115,6 +115,7 @@ export default function NameWave({ name }: { name: string }) {
     <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
       <h1
         ref={headingRef}
+        data-burst-text="name"
         className="inline-block text-4xl font-semibold tracking-tight text-black dark:text-zinc-50"
       >
         {name}
