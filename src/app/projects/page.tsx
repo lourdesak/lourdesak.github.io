@@ -451,7 +451,7 @@ function SectionHeading({
 }) {
   return (
     <h2
-      className={`${sans ? "font-sans" : `${playfairDisplay.className} italic`} text-2xl tracking-wide text-zinc-800 dark:text-zinc-100 ${
+      className={`${sans ? "font-sans font-light" : `${playfairDisplay.className} italic`} text-2xl tracking-wide text-zinc-800 dark:text-zinc-100 ${
         pill
           ? "inline-flex self-start rounded-full border border-[#8a7a00] px-5 py-1.5"
           : ""
